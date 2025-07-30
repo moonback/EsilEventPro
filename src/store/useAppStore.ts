@@ -13,6 +13,7 @@ interface AppStore extends AppState {
   addEvent: (event: EventFormData & { createdBy: string }) => Promise<void>;
   updateEvent: (id: string, event: Partial<EventFormData>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
+  updateEventStatus: (id: string, status: 'draft' | 'published' | 'confirmed' | 'completed' | 'cancelled') => Promise<void>;
   
   // Assignments
   addAssignment: (assignment: Omit<Assignment, 'id' | 'createdAt'>) => Promise<void>;
@@ -96,6 +97,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set(state => ({ events: state.events.filter(event => event.id !== id) }));
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'événement:', error);
+      throw error;
+    }
+  },
+
+  updateEventStatus: async (id, status) => {
+    console.log('Store: Mise à jour du statut', { id, status });
+    try {
+      const updatedEvent = await eventService.updateStatus(id, status);
+      console.log('Store: Événement mis à jour', updatedEvent);
+      set(state => ({
+        events: state.events.map(event =>
+          event.id === id ? updatedEvent : event
+        )
+      }));
+      console.log('Store: État mis à jour avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut de l\'événement:', error);
       throw error;
     }
   },

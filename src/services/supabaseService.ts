@@ -402,6 +402,26 @@ export const eventService = {
     return this.getById(id) as Promise<Event>;
   },
 
+  async updateStatus(id: string, status: 'draft' | 'published' | 'confirmed' | 'completed' | 'cancelled'): Promise<Event> {
+    console.log('Service: Mise à jour du statut', { id, status });
+    
+    const { error } = await supabase
+      .from('events')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erreur Supabase:', error);
+      throw error;
+    }
+
+    console.log('Service: Statut mis à jour avec succès');
+    return this.getById(id) as Promise<Event>;
+  },
+
   async delete(id: string): Promise<void> {
     // Supprimer les exigences d'abord
     await supabase.from('event_requirements').delete().eq('event_id', id);

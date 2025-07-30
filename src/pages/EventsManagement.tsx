@@ -28,7 +28,7 @@ interface EventsManagementProps {
 }
 
 const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
-  const { events, eventTypes, users, deleteEvent } = useAppStore();
+  const { events, eventTypes, users, deleteEvent, updateEventStatus } = useAppStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -37,6 +37,19 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState<string | null>(null);
+
+  // Fermer le menu de statut quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (statusMenuOpen && !(event.target as Element).closest('.status-menu')) {
+        setStatusMenuOpen(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [statusMenuOpen]);
 
   // Filtrage et tri des événements
   const filteredAndSortedEvents = events
@@ -120,6 +133,19 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleUpdateEventStatus = async (eventId: string, newStatus: string) => {
+    console.log('Tentative de mise à jour du statut:', { eventId, newStatus });
+    try {
+      await updateEventStatus(eventId, newStatus as any);
+      setStatusMenuOpen(null);
+      toast.success(`Statut mis à jour vers ${getStatusText(newStatus)}`);
+      console.log('Statut mis à jour avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer ${selectedEvents.length} événement(s) ?`)) {
       return;
@@ -179,6 +205,14 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
     if (isTomorrow(date)) return { text: 'Demain', color: 'text-yellow-600 font-semibold' };
     return { text: 'À venir', color: 'text-green-600' };
   };
+
+  const eventStatuses = [
+    { value: 'draft', label: 'Brouillon', color: '#6B7280' },
+    { value: 'published', label: 'Publié', color: '#3B82F6' },
+    { value: 'confirmed', label: 'Confirmé', color: '#10B981' },
+    { value: 'completed', label: 'Terminé', color: '#059669' },
+    { value: 'cancelled', label: 'Annulé', color: '#EF4444' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -491,9 +525,37 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(event.status)}`}>
-                          {getStatusText(event.status)}
-                        </span>
+                        <div className="relative">
+                          <button
+                            onClick={() => setStatusMenuOpen(statusMenuOpen === event.id ? null : event.id)}
+                            className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(event.status)} hover:opacity-80 transition-opacity status-menu`}
+                          >
+                            {getStatusText(event.status)}
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </button>
+                          
+                          {statusMenuOpen === event.id && (
+                            <div className="absolute z-10 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 py-1">
+                              {eventStatuses.map((status) => (
+                                <button
+                                  key={status.value}
+                                  onClick={() => handleUpdateEventStatus(event.id, status.value)}
+                                  className={`w-full text-left px-3 py-1 text-xs hover:bg-gray-100 ${
+                                    event.status === status.value ? 'bg-gray-100 font-medium' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center">
+                                    <div 
+                                      className="h-2 w-2 rounded-full mr-2"
+                                      style={{ backgroundColor: status.color }}
+                                    />
+                                    {status.label}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex items-center">
