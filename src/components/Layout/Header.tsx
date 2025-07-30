@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, Bell, User, Calendar, Users, Menu, X, Settings, Briefcase, Star } from 'lucide-react';
+import { LogOut, Bell, User, Calendar, Users, Menu, X, Settings, Briefcase, Star, CalendarDays } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -16,6 +16,7 @@ export const Header: React.FC = () => {
       { name: 'Affectations', href: '/admin/assignments', icon: Briefcase },
     ] : [
       { name: 'Mes Missions', href: '/technician', icon: Calendar },
+      { name: 'Mon Calendrier', href: '/technician/calendar', icon: CalendarDays },
       { name: 'Profil', href: '/technician/profile', icon: User },
     ])
   ];

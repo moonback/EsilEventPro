@@ -13,6 +13,7 @@ import { FullScreenLoader } from './components/LoadingSpinner';
 import PersonnelManagement from './pages/PersonnelManagement';
 import SkillsManagement from './pages/SkillsManagement';
 import AssignmentsManagement from './pages/AssignmentsManagement';
+import { TechnicianCalendar } from './pages/TechnicianCalendar';
 
 function App() {
   const { isAuthenticated, user, initializeAuth } = useAuthStore();
@@ -71,6 +72,7 @@ function App() {
             ) : (
               <>
                 <Route path="/technician" element={<TechnicianDashboard />} />
+                <Route path="/technician/calendar" element={<TechnicianCalendar />} />
                 <Route path="/technician/profile" element={<div>Profil technicien (à venir)</div>} />
                 <Route path="*" element={<Navigate to="/technician" replace />} />
               </>
