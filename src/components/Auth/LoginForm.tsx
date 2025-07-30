@@ -54,6 +54,7 @@ export const LoginForm: React.FC = () => {
                   },
                 })}
                 type="email"
+                autoComplete="email"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="votre.email@example.com"
               />
@@ -76,6 +77,7 @@ export const LoginForm: React.FC = () => {
                     },
                   })}
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="••••••••"
                 />
@@ -113,16 +115,20 @@ export const LoginForm: React.FC = () => {
 
           {/* Demo credentials */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Comptes de démonstration :</h3>
-            <div className="space-y-2 text-sm">
-              <div className="p-3 bg-blue-50 rounded-md">
-                <p className="font-medium text-blue-800">Administrateur</p>
-                <p className="text-blue-600">admin@eventpro.com / admin123</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-md">
-                <p className="font-medium text-green-800">Technicien</p>
-                <p className="text-green-600">tech@eventpro.com / tech123</p>
-              </div>
+            
+            
+            {/* Lien vers l'inscription */}
+            <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+              <p className="text-sm text-gray-600">
+                Nouveau technicien ?{' '}
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/register'}
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
+                  S'inscrire
+                </button>
+              </p>
             </div>
           </div>
         </div>

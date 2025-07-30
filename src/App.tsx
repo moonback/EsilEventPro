@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { useAuthStore } from './store/useAuthStore';
 import { useAppStore } from './store/useAppStore';
 import { LoginForm } from './components/Auth/LoginForm';
 import { Layout } from './components/Layout/Layout';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { TechnicianDashboard } from './pages/TechnicianDashboard';
+import { RegisterPage } from './pages/RegisterPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FullScreenLoader } from './components/LoadingSpinner';
 
@@ -22,7 +23,13 @@ function App() {
   useEffect(() => {
     // Charger les données si l'utilisateur est authentifié
     if (isAuthenticated) {
-      loadInitialData();
+      loadInitialData().catch(error => {
+        console.error('Erreur lors du chargement des données:', error);
+        // Ne pas afficher l'erreur à l'utilisateur si c'est une erreur 401 (non authentifié)
+        if (error.message && !error.message.includes('401')) {
+          toast.error('Erreur lors du chargement des données');
+        }
+      });
     }
   }, [isAuthenticated, loadInitialData]);
 
@@ -33,10 +40,14 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <>
-        <LoginForm />
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
         <Toaster position="top-right" />
-      </>
+      </Router>
     );
   }
 

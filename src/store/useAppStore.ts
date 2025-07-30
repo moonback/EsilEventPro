@@ -174,6 +174,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       
       // Gestion d'erreur plus robuste
       if (error instanceof Error) {
+        // Ne pas propager les erreurs 401 (non authentifié)
+        if (error.message.includes('401') || error.message.includes('JWT')) {
+          console.log('Utilisateur non authentifié, données non chargées');
+          return;
+        }
         throw new Error(`Erreur de chargement: ${error.message}`);
       } else {
         throw new Error('Erreur de chargement des données');
