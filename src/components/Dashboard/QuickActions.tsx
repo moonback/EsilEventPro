@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Star, CheckCircle, Plus, ChevronRight, Zap, Sparkles } from 'lucide-react';
+import { Users, Star, CheckCircle, Plus, ChevronRight, Zap, Sparkles, Calculator } from 'lucide-react';
 
 interface QuickActionsProps {
   onNavigate: (page: string) => void;
@@ -34,6 +34,15 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate, onCreate
       iconBgColor: 'bg-emerald-50',
       gradient: 'from-emerald-500 to-emerald-600',
       onClick: () => onNavigate('assignments'),
+    },
+    {
+      title: 'Salaires',
+      description: 'Gérer les paies',
+      icon: Calculator,
+      iconColor: 'text-blue-600',
+      iconBgColor: 'bg-blue-50',
+      gradient: 'from-blue-500 to-blue-600',
+      onClick: () => onNavigate('salaries'),
     },
   ];
 

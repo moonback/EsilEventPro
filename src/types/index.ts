@@ -114,3 +114,67 @@ export interface NotificationMessage {
   timestamp: Date;
   read: boolean;
 }
+
+// Types pour la gestion des salaires
+export interface SalaryCalculation {
+  id: string;
+  technicianId: string;
+  technicianName: string;
+  period: {
+    start: Date;
+    end: Date;
+  };
+  assignments: SalaryAssignment[];
+  totalHours: number;
+  hourlyRate: number;
+  totalSalary: number;
+  bonuses: SalaryBonus[];
+  deductions: SalaryDeduction[];
+  netSalary: number;
+  status: 'draft' | 'approved' | 'paid';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SalaryAssignment {
+  eventId: string;
+  eventTitle: string;
+  eventDate: Date;
+  hours: number;
+  hourlyRate: number;
+  total: number;
+}
+
+export interface SalaryBonus {
+  id: string;
+  type: 'overtime' | 'weekend' | 'holiday' | 'special' | 'performance';
+  description: string;
+  amount: number;
+  percentage?: number;
+}
+
+export interface SalaryDeduction {
+  id: string;
+  type: 'tax' | 'insurance' | 'absence' | 'other';
+  description: string;
+  amount: number;
+  percentage?: number;
+}
+
+export interface SalaryPeriod {
+  id: string;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+}
+
+export interface SalarySettings {
+  defaultHourlyRate: number;
+  overtimeMultiplier: number;
+  weekendMultiplier: number;
+  holidayMultiplier: number;
+  taxRate: number;
+  insuranceRate: number;
+  currency: string;
+}
