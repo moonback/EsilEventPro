@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Skill } from '../types';
+import toast from 'react-hot-toast';
 import { Plus, Edit, Trash2, User as UserIcon, Mail, Phone, Shield } from 'lucide-react';
 
 interface PersonnelManagementProps {
@@ -72,6 +73,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       setUsers(formattedUsers);
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
+      toast.error('Erreur lors du chargement des utilisateurs');
     } finally {
       setLoading(false);
     }
@@ -88,6 +90,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       setSkills(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des compétences:', error);
+      toast.error('Erreur lors du chargement des compétences');
     }
   };
 
@@ -112,7 +115,10 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
 
       // Ajouter les compétences si sélectionnées
       if (formData.selectedSkills.length > 0 && userData) {
-        const skillInserts = formData.selectedSkills.map(skillId => ({
+        // Vérifier s'il y a des doublons dans les compétences sélectionnées
+        const uniqueSkills = [...new Set(formData.selectedSkills)];
+        
+        const skillInserts = uniqueSkills.map(skillId => ({
           user_id: userData.id,
           skill_id: skillId
         }));
@@ -127,8 +133,10 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       setShowAddModal(false);
       resetForm();
       fetchUsers();
+      toast.success('Utilisateur ajouté avec succès');
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'utilisateur:', error);
+      toast.error('Erreur lors de l\'ajout de l\'utilisateur');
     }
   };
 
@@ -154,10 +162,12 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       // Gérer les compétences de manière plus robuste
       if (formData.selectedSkills.length > 0) {
         // Obtenir les compétences actuelles de l'utilisateur
-        const { data: currentSkills } = await supabase
+        const { data: currentSkills, error: fetchError } = await supabase
           .from('user_skills')
           .select('skill_id')
           .eq('user_id', selectedUser.id);
+
+        if (fetchError) throw fetchError;
 
         const currentSkillIds = currentSkills?.map(s => s.skill_id) || [];
         const newSkillIds = formData.selectedSkills;
@@ -179,33 +189,59 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
           if (deleteError) throw deleteError;
         }
 
-        // Ajouter les nouvelles compétences
+        // Ajouter les nouvelles compétences seulement si elles n'existent pas déjà
         if (skillsToAdd.length > 0) {
-          const skillInserts = skillsToAdd.map(skillId => ({
-            user_id: selectedUser.id,
-            skill_id: skillId
-          }));
-
-          const { error: insertError } = await supabase
+          // Vérifier à nouveau les compétences existantes avant d'ajouter
+          const { data: existingSkills, error: checkError } = await supabase
             .from('user_skills')
-            .insert(skillInserts);
+            .select('skill_id')
+            .eq('user_id', selectedUser.id)
+            .in('skill_id', skillsToAdd);
 
-          if (insertError) throw insertError;
+          if (checkError) throw checkError;
+
+          const existingSkillIds = existingSkills?.map(s => s.skill_id) || [];
+          const skillsToActuallyAdd = skillsToAdd.filter(id => !existingSkillIds.includes(id));
+
+          if (skillsToActuallyAdd.length > 0) {
+            const skillInserts = skillsToActuallyAdd.map(skillId => ({
+              user_id: selectedUser.id,
+              skill_id: skillId
+            }));
+
+            const { error: insertError } = await supabase
+              .from('user_skills')
+              .insert(skillInserts);
+
+            if (insertError) throw insertError;
+          }
         }
       } else {
         // Si aucune compétence sélectionnée, supprimer toutes les compétences
-        await supabase
+        const { error: deleteError } = await supabase
           .from('user_skills')
           .delete()
           .eq('user_id', selectedUser.id);
+
+        if (deleteError) throw deleteError;
       }
 
       setShowEditModal(false);
       setSelectedUser(null);
       resetForm();
       fetchUsers();
+      toast.success('Utilisateur modifié avec succès');
     } catch (error) {
       console.error('Erreur lors de la modification de l\'utilisateur:', error);
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === '23505') {
+          toast.error('Cette compétence est déjà assignée à cet utilisateur');
+        } else {
+          toast.error('Erreur lors de la modification de l\'utilisateur');
+        }
+      } else {
+        toast.error('Erreur lors de la modification de l\'utilisateur');
+      }
     }
   };
 
@@ -234,8 +270,10 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       if (error) throw error;
 
       fetchUsers();
+      toast.success('Utilisateur supprimé avec succès');
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+      toast.error('Erreur lors de la suppression de l\'utilisateur');
     }
   };
 
