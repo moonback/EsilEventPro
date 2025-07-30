@@ -7,6 +7,7 @@ import { format, differenceInHours, startOfMonth, endOfMonth, isWithinInterval }
 import { fr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { userSkillsService, userStatsService } from '../services/supabaseService';
+import { supabase } from '../lib/supabase';
 
 export const TechnicianProfile: React.FC = () => {
   const { user, updateUser } = useAuthStore();
@@ -25,13 +26,13 @@ export const TechnicianProfile: React.FC = () => {
     hoursThisYear: 0
   });
   
-  // État du formulaire
+  // État du formulaire (sans taux horaire - défini par l'admin)
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    hourlyRate: user?.hourlyRate || 0,
+    hourlyRate: 0, // Non modifiable par le technicien
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -61,6 +62,58 @@ export const TechnicianProfile: React.FC = () => {
 
     loadUserStats();
   }, [user]);
+
+  // Recharger l'utilisateur une seule fois au montage du composant
+  useEffect(() => {
+    const reloadUser = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (userError) throw userError;
+        if (!userData) throw new Error('Utilisateur non trouvé');
+
+        // Récupérer les compétences de l'utilisateur
+        const { data: userSkillsData, error: userSkillsError } = await supabase
+          .from('user_skills')
+          .select(`
+            skills (*)
+          `)
+          .eq('user_id', user.id);
+
+        if (userSkillsError) throw userSkillsError;
+
+        const skills = userSkillsData?.map((item: any) => item.skills).filter(Boolean) || [];
+
+        const updatedUser: UserType = {
+          id: userData.id,
+          email: userData.email,
+          firstName: userData.first_name,
+          lastName: userData.last_name,
+          role: userData.role,
+          phone: userData.phone,
+          hourlyRate: userData.hourly_rate || 0,
+          skills: skills,
+          createdAt: new Date(userData.created_at),
+          updatedAt: new Date(userData.updated_at),
+        };
+
+        // Mettre à jour l'utilisateur dans le store seulement si les données ont changé
+        if (JSON.stringify(updatedUser) !== JSON.stringify(user)) {
+          updateUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Erreur lors du rechargement de l\'utilisateur:', error);
+      }
+    };
+
+    reloadUser();
+  }, []); // Dépendances vides = exécuté une seule fois au montage
 
   // Calcul des statistiques réelles (fallback local)
   const calculateStats = () => {
@@ -179,13 +232,12 @@ export const TechnicianProfile: React.FC = () => {
         }
       }
 
-      // Préparer les données de mise à jour
+      // Préparer les données de mise à jour (sans taux horaire - défini par l'admin)
       const updateData: Partial<UserType> = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        hourlyRate: formData.hourlyRate,
       };
 
       // Ajouter le mot de passe si fourni
@@ -236,7 +288,7 @@ export const TechnicianProfile: React.FC = () => {
         lastName: user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
-        hourlyRate: user.hourlyRate || 0,
+        hourlyRate: 0, // Non modifiable par le technicien
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
@@ -383,16 +435,12 @@ export const TechnicianProfile: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Taux horaire (€/h)
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.hourlyRate}
-                  onChange={(e) => handleInputChange('hourlyRate', e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
-                  placeholder="0.00"
-                />
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700">
+                  {user?.hourlyRate ? `${user.hourlyRate} €/h` : 'Non défini'}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Le taux horaire est défini par l'administrateur
+                </p>
               </div>
             </div>
 
@@ -734,7 +782,7 @@ export const TechnicianProfile: React.FC = () => {
               {(!user?.hourlyRate || user.hourlyRate === 0) && (
                 <div className="text-center py-4">
                   <p className="text-gray-600 text-sm">
-                    Définissez votre taux horaire pour voir vos gains estimés
+                    Le taux horaire doit être défini par l'administrateur pour voir vos gains estimés
                   </p>
                 </div>
               )}

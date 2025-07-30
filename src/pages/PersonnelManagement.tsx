@@ -25,6 +25,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
     lastName: '',
     phone: '',
     role: 'technician' as 'admin' | 'technician',
+    hourlyRate: 0,
     selectedSkills: [] as string[]
   });
 
@@ -124,6 +125,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
           last_name: formData.lastName,
           phone: formData.phone,
           role: formData.role,
+          hourly_rate: formData.hourlyRate,
         }])
         .select()
         .single();
@@ -169,31 +171,44 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
           last_name: formData.lastName,
           phone: formData.phone,
           role: formData.role,
+          hourly_rate: formData.hourlyRate,
         })
         .eq('id', selectedUser.id);
 
       if (userError) throw userError;
 
-      // Supprimer toutes les compétences actuelles
-      const { error: deleteError } = await supabase
-        .from('user_skills')
-        .delete()
-        .eq('user_id', selectedUser.id);
-
-      if (deleteError) throw deleteError;
-
-      // Ajouter les nouvelles compétences sélectionnées
-      if (formData.selectedSkills.length > 0) {
-        const userSkillsData = formData.selectedSkills.map(skillId => ({
-          user_id: selectedUser.id,
-          skill_id: skillId,
-        }));
-
-        const { error: userSkillsError } = await supabase
+      // Gérer les compétences utilisateur de manière plus robuste
+      try {
+        // Supprimer toutes les compétences actuelles
+        const { error: deleteError } = await supabase
           .from('user_skills')
-          .insert(userSkillsData);
+          .delete()
+          .eq('user_id', selectedUser.id);
 
-        if (userSkillsError) throw userSkillsError;
+        if (deleteError) {
+          console.warn('Erreur lors de la suppression des compétences:', deleteError);
+          // Continuer même si la suppression échoue
+        }
+
+        // Ajouter les nouvelles compétences sélectionnées
+        if (formData.selectedSkills.length > 0) {
+          const userSkillsData = formData.selectedSkills.map(skillId => ({
+            user_id: selectedUser.id,
+            skill_id: skillId,
+          }));
+
+          const { error: userSkillsError } = await supabase
+            .from('user_skills')
+            .insert(userSkillsData);
+
+          if (userSkillsError) {
+            console.warn('Erreur lors de l\'ajout des compétences:', userSkillsError);
+            // Continuer même si l'ajout échoue
+          }
+        }
+      } catch (skillsError) {
+        console.warn('Erreur lors de la gestion des compétences:', skillsError);
+        // Continuer même si la gestion des compétences échoue
       }
 
       toast.success('Utilisateur mis à jour avec succès !');
@@ -242,6 +257,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       lastName: '',
       phone: '',
       role: 'technician',
+      hourlyRate: 0,
       selectedSkills: []
     });
   };
@@ -254,6 +270,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       lastName: user.lastName,
       phone: user.phone || '',
       role: user.role,
+      hourlyRate: user.hourlyRate || 0,
       selectedSkills: user.skills.map(skill => skill.id)
     });
     setShowEditModal(true);
@@ -540,6 +557,21 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700">Taux horaire (€/h)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.hourlyRate}
+                    onChange={(e) => setFormData({...formData, hourlyRate: parseFloat(e.target.value) || 0})}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Défini uniquement pour les techniciens
+                  </p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700">Compétences</label>
                   <select
                     multiple
@@ -636,6 +668,21 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
                     <option value="technician">Technicien</option>
                     <option value="admin">Administrateur</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Taux horaire (€/h)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.hourlyRate}
+                    onChange={(e) => setFormData({...formData, hourlyRate: parseFloat(e.target.value) || 0})}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Défini uniquement pour les techniciens
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Compétences</label>
