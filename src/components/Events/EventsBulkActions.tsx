@@ -16,7 +16,22 @@ export const EventsBulkActions: React.FC<EventsBulkActionsProps> = ({
   onBulkDelete,
   onImportICal,
 }) => {
-  if (selectedEvents.length === 0) return null;
+  // Si aucun événement n'est sélectionné, afficher seulement le bouton d'import
+  if (selectedEvents.length === 0) {
+    return onImportICal ? (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-end">
+          <button
+            onClick={onImportICal}
+            className="flex items-center space-x-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            <span>Importer iCal</span>
+          </button>
+        </div>
+      </div>
+    ) : null;
+  }
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
