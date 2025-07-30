@@ -121,7 +121,8 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
   const EventComponent = ({ event }: { event: CalendarEvent }) => {
     const startTime = format(event.start, 'HH:mm');
     const endTime = format(event.end, 'HH:mm');
-    const isAllDay = event.start.getHours() === 0 && event.end.getHours() === 0;
+    const isAllDay = event.start.getHours() === 0 && event.start.getMinutes() === 0 && 
+                     event.end.getHours() === 0 && event.end.getMinutes() === 0;
     const { resource } = event;
     
     return (
@@ -286,7 +287,7 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
             scrollToTime={new Date(0, 0, 0, 8, 0, 0)} // Scroll vers 8h par défaut
             length={30} // Durée par défaut des créneaux (30 minutes)
             rtl={false}
-            showMultiDayTimes={false}
+            showMultiDayTimes={true}
           />
         </div>
       </div>
