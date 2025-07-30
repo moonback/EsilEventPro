@@ -24,7 +24,6 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
     lastName: '',
     phone: '',
     role: 'technician' as 'admin' | 'technician',
-    password: '',
     selectedSkills: [] as string[]
   });
 
@@ -96,33 +95,25 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
     e.preventDefault();
     
     try {
-      // Créer l'utilisateur dans Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: formData.password,
-        email_confirm: true
-      });
-
-      if (authError) throw authError;
-
-      // Créer le profil utilisateur
-      const { error: profileError } = await supabase
+      // Créer le profil utilisateur directement
+      const { data: userData, error: profileError } = await supabase
         .from('users')
         .insert({
-          id: authData.user?.id,
           email: formData.email,
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone: formData.phone,
           role: formData.role
-        });
+        })
+        .select()
+        .single();
 
       if (profileError) throw profileError;
 
       // Ajouter les compétences si sélectionnées
-      if (formData.selectedSkills.length > 0) {
+      if (formData.selectedSkills.length > 0 && userData) {
         const skillInserts = formData.selectedSkills.map(skillId => ({
-          user_id: authData.user?.id,
+          user_id: userData.id,
           skill_id: skillId
         }));
 
@@ -226,7 +217,6 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       lastName: '',
       phone: '',
       role: 'technician',
-      password: '',
       selectedSkills: []
     });
   };
@@ -239,7 +229,6 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
       lastName: user.lastName,
       phone: user.phone || '',
       role: user.role,
-      password: '',
       selectedSkills: user.skills.map(skill => skill.id)
     });
     setShowEditModal(true);
@@ -424,16 +413,7 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Prénom</label>
