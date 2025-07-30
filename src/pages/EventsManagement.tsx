@@ -440,8 +440,8 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
         )}
 
         {/* Tableau des événements */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-lg shadow-sm border overflow-visible">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -526,7 +526,7 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="relative inline-block text-left status-dropdown">
+                        <div className="relative inline-block text-left status-dropdown" style={{ zIndex: 1000 }}>
                           <button
                             onClick={() => setStatusMenuOpen(statusMenuOpen === event.id ? null : event.id)}
                             className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(event.status)} hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer shadow-sm hover:shadow-md`}
@@ -536,7 +536,7 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
                           </button>
                           
                           {statusMenuOpen === event.id && (
-                            <div className="absolute right-0 z-50 mt-2 w-40 bg-white rounded-md shadow-lg border border-gray-200 py-1 ring-1 ring-black ring-opacity-5 transform opacity-100 scale-100 transition-all duration-200 ease-out">
+                            <div className="absolute right-0 z-[9999] mt-2 w-40 bg-white rounded-md shadow-xl border border-gray-200 py-1 ring-1 ring-black ring-opacity-5 transform opacity-100 scale-100 transition-all duration-200 ease-out">
                               {eventStatuses.map((status) => (
                                 <button
                                   key={status.value}

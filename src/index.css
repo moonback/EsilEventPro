@@ -140,3 +140,27 @@ body {
 .spinner {
   @apply inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent;
 }
+
+/* Styles pour le menu de statut */
+.status-dropdown {
+  position: relative;
+}
+
+.status-dropdown .absolute {
+  position: absolute !important;
+  z-index: 9999 !important;
+  background: white !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.375rem !important;
+}
+
+/* S'assurer que le tableau n'interfère pas avec le menu */
+.overflow-x-auto {
+  position: relative;
+}
+
+/* Améliorer la visibilité du menu */
+.z-\[9999\] {
+  z-index: 9999 !important;
+}
