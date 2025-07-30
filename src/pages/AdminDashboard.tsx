@@ -144,8 +144,8 @@ export const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-12xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <div className="max-w-14xl mx-auto px-6 sm:px-8 lg:px-12 py-8">
         {/* Header compact et professionnel */}
         <DashboardHeader onCreateEvent={handleCreateEventClick} />
 
@@ -160,9 +160,9 @@ export const AdminDashboard: React.FC = () => {
         />
 
         {/* Section principale avec layout compact */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Colonne principale - Calendrier */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Colonne principale - Calendrier (3 colonnes sur xl) */}
+          <div className="xl:col-span-3">
             <CalendarSection
               weeklyEvents={weeklyEvents}
               onSelectEvent={handleSelectEvent}
@@ -171,8 +171,8 @@ export const AdminDashboard: React.FC = () => {
             />
           </div>
 
-          {/* Colonne latérale - Actions rapides et événements */}
-          <div className="space-y-6">
+          {/* Colonne latérale - Actions rapides et événements (1 colonne sur xl) */}
+          <div className="space-y-8">
             {/* Actions rapides */}
             <QuickActions
               onNavigate={handleNavigate}
