@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase, Plus, BarChart3, MapPin, Trash2 } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase, Plus, BarChart3, MapPin, Trash2, Activity, Star, ChevronRight } from 'lucide-react';
 import { EventCalendar } from '../components/Calendar/EventCalendar';
 import { EventForm } from '../components/Events/EventForm';
 import { useAppStore } from '../store/useAppStore';
@@ -99,17 +99,20 @@ export const AdminDashboard: React.FC = () => {
 
   if (showEventForm) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-              <Calendar className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {selectedEvent ? 'Modifier l\'événement' : 'Nouvel événement'}
-              </h1>
-              <p className="text-gray-600">Créez ou modifiez un événement</p>
+      <div className="space-y-8">
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 rounded-3xl p-8 shadow-2xl">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.05%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
+                <Calendar className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-1">
+                  {selectedEvent ? 'Modifier l\'événement' : 'Nouvel événement'}
+                </h1>
+                <p className="text-blue-100 text-lg">Créez ou modifiez un événement</p>
+              </div>
             </div>
           </div>
         </div>
@@ -148,198 +151,222 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header avec navigation */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-              <BarChart3 className="h-7 w-7 text-white" />
+      {/* Header héroïque */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 rounded-3xl p-8 shadow-2xl">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.05%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-400/10 to-transparent rounded-full -mr-48 -mt-48"></div>
+        
+        <div className="relative flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
+              <BarChart3 className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord</h1>
-              <p className="text-gray-600">Vue d'ensemble de votre gestion événementielle</p>
+              <h1 className="text-4xl font-bold text-white mb-1">Tableau de Bord</h1>
+              <p className="text-blue-100 text-lg">Vue d'ensemble de votre gestion événementielle</p>
             </div>
           </div>
           
           <button
             onClick={() => setShowEventForm(true)}
-            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="group relative overflow-hidden flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-sm text-white rounded-2xl font-semibold border border-white/20 hover:from-white/20 hover:to-white/10 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
-            <Plus className="h-5 w-5" />
-            <span>Nouvel événement</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/50 to-indigo-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <Plus className="h-6 w-6 relative z-10" />
+            <span className="relative z-10">Nouvel événement</span>
           </button>
         </div>
 
-        {/* Statistiques principales */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-blue-600" />
+        {/* Statistiques principales avec glassmorphism */}
+        <div className="relative grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-400/30 to-blue-600/30 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Calendar className="h-7 w-7 text-white" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.totalEvents}</div>
-                <div className="text-sm text-gray-500">Événements</div>
+                <div className="text-3xl font-bold text-white">{stats.totalEvents}</div>
+                <div className="text-blue-100">Événements</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Users className="h-5 w-5 text-green-600" />
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-400/30 to-emerald-600/30 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Users className="h-7 w-7 text-white" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.totalTechnicians}</div>
-                <div className="text-sm text-gray-500">Techniciens</div>
+                <div className="text-3xl font-bold text-white">{stats.totalTechnicians}</div>
+                <div className="text-blue-100">Techniciens</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Clock className="h-5 w-5 text-yellow-600" />
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-400/30 to-amber-600/30 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Clock className="h-7 w-7 text-white" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.upcommingEvents}</div>
-                <div className="text-sm text-gray-500">À venir</div>
+                <div className="text-3xl font-bold text-white">{stats.upcommingEvents}</div>
+                <div className="text-blue-100">À venir</div>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-orange-600" />
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
+            <div className="flex items-center space-x-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-orange-400/30 to-orange-600/30 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <AlertCircle className="h-7 w-7 text-white" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</div>
-                <div className="text-sm text-gray-500">En attente</div>
+                <div className="text-3xl font-bold text-white">{stats.pendingAssignments}</div>
+                <div className="text-blue-100">En attente</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation rapide */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Navigation rapide avec animations */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         <button
           onClick={() => handleNavigate('personnel')}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+          className="group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-              <Users className="h-5 w-5 text-purple-600" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-600/0 group-hover:from-purple-500/5 group-hover:to-purple-600/10 transition-all duration-300"></div>
+          <div className="relative flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-purple-200 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+              <Users className="h-8 w-8 text-purple-600" />
             </div>
-            <div className="text-left">
-              <div className="font-semibold text-gray-900">Personnel</div>
+            <div className="text-center">
+              <div className="font-bold text-xl text-gray-900 mb-1">Personnel</div>
               <div className="text-sm text-gray-500">Gérer les équipes</div>
             </div>
+            <ChevronRight className="h-5 w-5 text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
         </button>
         
         <button
           onClick={() => handleNavigate('skills')}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+          className="group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
-              <Briefcase className="h-5 w-5 text-yellow-600" />
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-600/0 group-hover:from-amber-500/5 group-hover:to-amber-600/10 transition-all duration-300"></div>
+          <div className="relative flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+              <Star className="h-8 w-8 text-amber-600" />
             </div>
-            <div className="text-left">
-              <div className="font-semibold text-gray-900">Compétences</div>
+            <div className="text-center">
+              <div className="font-bold text-xl text-gray-900 mb-1">Compétences</div>
               <div className="text-sm text-gray-500">Catalogue des skills</div>
             </div>
+            <ChevronRight className="h-5 w-5 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
         </button>
         
         <button
           onClick={() => handleNavigate('assignments')}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+          className="group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-lg border border-gray-200 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-600/0 group-hover:from-emerald-500/5 group-hover:to-emerald-600/10 transition-all duration-300"></div>
+          <div className="relative flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+              <CheckCircle className="h-8 w-8 text-emerald-600" />
             </div>
-            <div className="text-left">
-              <div className="font-semibold text-gray-900">Affectations</div>
+            <div className="text-center">
+              <div className="font-bold text-xl text-gray-900 mb-1">Affectations</div>
               <div className="text-sm text-gray-500">Gérer les missions</div>
             </div>
+            <ChevronRight className="h-5 w-5 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
         </button>
         
         <button
           onClick={() => setShowEventForm(true)}
-          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+          className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:scale-105"
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-              <Plus className="h-5 w-5 text-blue-600" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/0 group-hover:from-white/10 group-hover:to-white/5 transition-all duration-300"></div>
+          <div className="relative flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg border border-white/30">
+              <Plus className="h-8 w-8 text-white" />
             </div>
-            <div className="text-left">
-              <div className="font-semibold text-gray-900">Nouvel événement</div>
-              <div className="text-sm text-gray-500">Créer un événement</div>
+            <div className="text-center">
+              <div className="font-bold text-xl text-white mb-1">Événement</div>
+              <div className="text-sm text-blue-100">Créer un nouveau</div>
             </div>
+            <Activity className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
         </button>
       </div>
 
-      {/* Événements à venir */}
+      {/* Événements à venir avec design moderne */}
       {upcomingEvents.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-blue-600" />
+        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
               <span>Événements à venir</span>
             </h2>
-            <span className="text-sm text-gray-500">{upcomingEvents.length} événement{upcomingEvents.length !== 1 ? 's' : ''}</span>
+            <div className="flex items-center space-x-2 bg-blue-50 rounded-full px-4 py-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-blue-700">{upcomingEvents.length} événement{upcomingEvents.length !== 1 ? 's' : ''}</span>
+            </div>
           </div>
           
-          <div className="space-y-3">
-            {upcomingEvents.map((event) => (
-              <div key={event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(new Date(event.startDate), 'dd MMM yyyy', { locale: fr })}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{event.location}</span>
-                      </span>
+          <div className="space-y-4">
+            {upcomingEvents.map((event, index) => (
+              <div key={event.id} className="group relative overflow-hidden bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <div className="w-4 h-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full shadow-lg"></div>
+                      <div className="absolute inset-0 w-4 h-4 bg-blue-400 rounded-full animate-ping opacity-20"></div>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl text-gray-900 mb-1">{event.title}</h3>
+                      <div className="flex items-center space-x-6 text-sm text-gray-500">
+                        <span className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4" />
+                          <span className="font-medium">{format(new Date(event.startDate), 'dd MMM yyyy', { locale: fr })}</span>
+                        </span>
+                        <span className="flex items-center space-x-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>{event.location}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    event.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                    event.status === 'published' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {event.status === 'confirmed' ? 'Confirmé' :
-                     event.status === 'published' ? 'Publié' : 'Brouillon'}
-                  </span>
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => handleSelectEvent(event)}
-                      className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                      title="Modifier l'événement"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEvent(event)}
-                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                      title="Supprimer l'événement"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${
+                      event.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                      event.status === 'published' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                      'bg-gray-100 text-gray-800 border border-gray-200'
+                    }`}>
+                      {event.status === 'confirmed' ? 'Confirmé' :
+                       event.status === 'published' ? 'Publié' : 'Brouillon'}
+                    </span>
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <button
+                        onClick={() => handleSelectEvent(event)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                        title="Modifier l'événement"
+                      >
+                        <Settings className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEvent(event)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                        title="Supprimer l'événement"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -348,21 +375,25 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Calendrier */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
+      {/* Calendrier avec design premium */}
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-white" />
+            </div>
             <span>Calendrier des événements</span>
           </h2>
         </div>
         
-        <EventCalendar
-          onSelectEvent={handleSelectEvent}
-          onSelectSlot={handleCreateFromSlot}
-          onDeleteEvent={handleDeleteEvent}
-          height={600}
-        />
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+          <EventCalendar
+            onSelectEvent={handleSelectEvent}
+            onSelectSlot={handleCreateFromSlot}
+            onDeleteEvent={handleDeleteEvent}
+            height={600}
+          />
+        </div>
       </div>
     </div>
   );
