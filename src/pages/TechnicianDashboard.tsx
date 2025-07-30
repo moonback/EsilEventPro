@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp, Filter, SortAsc, FileText } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { Assignment, Event } from '../types';
@@ -12,6 +12,8 @@ export const TechnicianDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [declineReason, setDeclineReason] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
 
   useEffect(() => {
     // Les données sont maintenant chargées automatiquement dans App.tsx
@@ -29,6 +31,23 @@ export const TechnicianDashboard: React.FC = () => {
     assignment: myAssignments.find(a => a.eventId === event.id)!
   }));
 
+  // Filtrage et tri des événements
+  const filteredAndSortedEvents = myEvents
+    .filter(eventWithAssignment => {
+      if (statusFilter === 'all') return true;
+      return eventWithAssignment.assignment.status === statusFilter;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'date') {
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      } else {
+        // Tri par statut : pending > accepted > declined
+        const statusOrder = { pending: 0, accepted: 1, declined: 2 };
+        return statusOrder[a.assignment.status as keyof typeof statusOrder] - 
+               statusOrder[b.assignment.status as keyof typeof statusOrder];
+      }
+    });
+
   // Statistiques
   const stats = {
     total: myAssignments.length,
@@ -42,7 +61,7 @@ export const TechnicianDashboard: React.FC = () => {
       status: 'accepted',
       responseDate: new Date(),
     });
-    toast.success('Mission acceptée !');
+    toast.success('Contrat accepté avec succès !');
   };
 
   const handleDeclineAssignment = (assignment: Assignment, reason: string) => {
@@ -77,9 +96,9 @@ export const TechnicianDashboard: React.FC = () => {
   const getAssignmentStatus = (assignment: Assignment) => {
     switch (assignment.status) {
       case 'accepted':
-        return { label: 'Acceptée', color: 'bg-green-100 text-green-800', icon: CheckCircle };
+        return { label: 'Accepté', color: 'bg-green-100 text-green-800', icon: CheckCircle };
       case 'declined':
-        return { label: 'Déclinée', color: 'bg-red-100 text-red-800', icon: XCircle };
+        return { label: 'Décliné', color: 'bg-red-100 text-red-800', icon: XCircle };
       default:
         return { label: 'En attente', color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle };
     }
@@ -92,11 +111,11 @@ export const TechnicianDashboard: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-              <User className="h-7 w-7 text-white" />
+              <FileText className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Mes Missions</h1>
-              <p className="text-gray-600">Gérez vos affectations et disponibilités</p>
+              <h1 className="text-3xl font-bold text-gray-900">Mes Contrats</h1>
+              <p className="text-gray-600">Gérez vos missions et répondez aux affectations</p>
             </div>
           </div>
           
@@ -118,7 +137,7 @@ export const TechnicianDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-sm text-gray-500">Total missions</div>
+                <div className="text-sm text-gray-500">Total contrats</div>
               </div>
             </div>
           </div>
@@ -142,7 +161,7 @@ export const TechnicianDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">{stats.accepted}</div>
-                <div className="text-sm text-gray-500">Acceptées</div>
+                <div className="text-sm text-gray-500">Acceptés</div>
               </div>
             </div>
           </div>
@@ -154,36 +173,78 @@ export const TechnicianDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">{stats.declined}</div>
-                <div className="text-sm text-gray-500">Déclinées</div>
+                <div className="text-sm text-gray-500">Déclinés</div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Missions */}
+      {/* Filtres et tri */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filtrer par :</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">Tous les contrats</option>
+                <option value="pending">En attente</option>
+                <option value="accepted">Acceptés</option>
+                <option value="declined">Déclinés</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <SortAsc className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Trier par :</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'date' | 'status')}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="date">Date</option>
+              <option value="status">Statut</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Contrats */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
-            <Calendar className="h-6 w-6 text-blue-600" />
-            <span>Mes Missions</span>
+            <FileText className="h-6 w-6 text-blue-600" />
+            <span>Mes Contrats</span>
           </h2>
           <span className="text-sm text-gray-500">
-            {myEvents.length} mission{myEvents.length !== 1 ? 's' : ''}
+            {filteredAndSortedEvents.length} contrat{filteredAndSortedEvents.length !== 1 ? 's' : ''}
           </span>
         </div>
 
-        {myEvents.length === 0 ? (
+        {filteredAndSortedEvents.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="h-8 w-8 text-gray-400" />
+              <FileText className="h-8 w-8 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune mission pour le moment</h3>
-            <p className="text-gray-600">Vous recevrez des notifications quand de nouvelles missions vous seront assignées.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {statusFilter === 'all' ? 'Aucun contrat pour le moment' : 'Aucun contrat avec ce statut'}
+            </h3>
+            <p className="text-gray-600">
+              {statusFilter === 'all' 
+                ? 'Vous recevrez des notifications quand de nouveaux contrats vous seront assignés.'
+                : 'Aucun contrat ne correspond au filtre sélectionné.'
+              }
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {myEvents.map((eventWithAssignment) => {
+            {filteredAndSortedEvents.map((eventWithAssignment) => {
               const event = eventWithAssignment;
               const assignment = eventWithAssignment.assignment;
               const status = getEventStatus(eventWithAssignment);
@@ -228,6 +289,12 @@ export const TechnicianDashboard: React.FC = () => {
                       <span>{format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}</span>
                     </div>
 
+                    {event.description && (
+                      <div className="text-sm text-gray-600">
+                        <p className="line-clamp-2">{event.description}</p>
+                      </div>
+                    )}
+
                     {assignment.declineReason && (
                       <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
                         <p className="text-sm text-red-800">
@@ -266,7 +333,7 @@ export const TechnicianDashboard: React.FC = () => {
       {selectedAssignment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Décliner la mission</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Décliner le contrat</h3>
             <p className="text-gray-600 mb-4">
               Veuillez indiquer la raison de votre refus (optionnel) :
             </p>
