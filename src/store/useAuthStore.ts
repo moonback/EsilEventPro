@@ -1,44 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuthState, User, LoginCredentials } from '../types';
+import { authService } from '../services/authService';
 
 interface AuthStore extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
+  initializeAuth: () => Promise<void>;
 }
-
-// Simulation des données d'authentification
-const mockUsers = [
-  {
-    id: '1',
-    email: 'admin@eventpro.com',
-    password: 'admin123',
-    firstName: 'Admin',
-    lastName: 'System',
-    role: 'admin' as const,
-    phone: '+33123456789',
-    skills: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    email: 'tech@eventpro.com',
-    password: 'tech123',
-    firstName: 'Jean',
-    lastName: 'Dupont',
-    role: 'technician' as const,
-    phone: '+33987654321',
-    skills: [
-      { id: '1', name: 'Son', category: 'sound' as const, level: 'expert' as const },
-      { id: '2', name: 'Éclairage', category: 'lighting' as const, level: 'intermediate' as const },
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -53,27 +24,10 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         
         try {
-          // Simulation de l'API d'authentification
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const user = mockUsers.find(
-            u => u.email === credentials.email && u.password === credentials.password
-          );
-          
-          if (!user) {
-            throw new Error('Identifiants invalides');
-          }
-
-          // Simulation des tokens JWT
-          const token = `jwt_token_${user.id}_${Date.now()}`;
-          const refreshToken = `refresh_token_${user.id}_${Date.now()}`;
-
-          const { password, ...userWithoutPassword } = user;
+          const user = await authService.login(credentials);
           
           set({
-            user: userWithoutPassword,
-            token,
-            refreshToken,
+            user,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -83,27 +37,36 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      logout: () => {
-        set({
-          user: null,
-          token: null,
-          refreshToken: null,
-          isAuthenticated: false,
-        });
+      logout: async () => {
+        try {
+          await authService.logout();
+        } catch (error) {
+          console.error('Erreur lors de la déconnexion:', error);
+        } finally {
+          set({
+            user: null,
+            token: null,
+            refreshToken: null,
+            isAuthenticated: false,
+          });
+        }
       },
 
       refreshAuth: async () => {
-        const { refreshToken } = get();
-        if (!refreshToken) return;
-
         try {
-          // Simulation du refresh token
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await authService.refreshSession();
+          const user = await authService.getCurrentUser();
           
-          const newToken = `jwt_token_refreshed_${Date.now()}`;
-          set({ token: newToken });
+          if (user) {
+            set({
+              user,
+              isAuthenticated: true,
+            });
+          } else {
+            get().logout();
+          }
         } catch (error) {
-          // Si le refresh échoue, déconnecter l'utilisateur
+          console.error('Erreur lors du refresh:', error);
           get().logout();
         }
       },
@@ -116,13 +79,25 @@ export const useAuthStore = create<AuthStore>()(
           });
         }
       },
+
+      initializeAuth: async () => {
+        try {
+          const user = await authService.getCurrentUser();
+          if (user) {
+            set({
+              user,
+              isAuthenticated: true,
+            });
+          }
+        } catch (error) {
+          console.error('Erreur lors de l\'initialisation de l\'auth:', error);
+        }
+      },
     }),
     {
       name: 'auth-store',
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     }

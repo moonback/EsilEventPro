@@ -1,119 +1,28 @@
 import { create } from 'zustand';
-import { AppState, Event, User, Assignment, Skill, EventType } from '../types';
-import { addDays, startOfDay } from 'date-fns';
+import { AppState, Event, User, Assignment, Skill, EventType, EventFormData } from '../types';
+import { userService, eventService, assignmentService, skillService, eventTypeService } from '../services/supabaseService';
+import { defaultSkills, defaultEventTypes } from '../config/defaultData';
 
 interface AppStore extends AppState {
   // Users
-  addUser: (user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
-  deleteUser: (id: string) => void;
+  addUser: (user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateUser: (id: string, user: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   
   // Events
-  addEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateEvent: (id: string, event: Partial<Event>) => void;
-  deleteEvent: (id: string) => void;
+  addEvent: (event: EventFormData & { createdBy: string }) => Promise<void>;
+  updateEvent: (id: string, event: Partial<EventFormData>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
   
   // Assignments
-  addAssignment: (assignment: Omit<Assignment, 'id' | 'createdAt'>) => void;
-  updateAssignment: (id: string, assignment: Partial<Assignment>) => void;
-  deleteAssignment: (id: string) => void;
+  addAssignment: (assignment: Omit<Assignment, 'id' | 'createdAt'>) => Promise<void>;
+  updateAssignment: (id: string, assignment: Partial<Assignment>) => Promise<void>;
+  deleteAssignment: (id: string) => Promise<void>;
   
   // Data loading
-  loadInitialData: () => void;
+  loadInitialData: () => Promise<void>;
+  isLoading: boolean;
 }
-
-// Données d'exemple
-const mockSkills: Skill[] = [
-  { id: '1', name: 'Mixage Audio', category: 'sound', level: 'expert' },
-  { id: '2', name: 'Installation Sono', category: 'sound', level: 'intermediate' },
-  { id: '3', name: 'Éclairage Scène', category: 'lighting', level: 'expert' },
-  { id: '4', name: 'Projecteurs LED', category: 'lighting', level: 'intermediate' },
-  { id: '5', name: 'Régie Vidéo', category: 'video', level: 'expert' },
-  { id: '6', name: 'Captation Multi-Cam', category: 'video', level: 'expert' },
-];
-
-const mockEventTypes: EventType[] = [
-  { id: '1', name: 'Concert', color: '#3B82F6', defaultDuration: 6 },
-  { id: '2', name: 'Conférence', color: '#10B981', defaultDuration: 8 },
-  { id: '3', name: 'Mariage', color: '#F59E0B', defaultDuration: 12 },
-  { id: '4', name: 'Festival', color: '#EF4444', defaultDuration: 24 },
-  { id: '5', name: 'Spectacle', color: '#8B5CF6', defaultDuration: 4 },
-];
-
-const mockUsers: User[] = [
-  {
-    id: '1',
-    email: 'admin@eventpro.com',
-    firstName: 'Admin',
-    lastName: 'System',
-    role: 'admin',
-    phone: '+33123456789',
-    skills: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    email: 'jean.dupont@eventpro.com',
-    firstName: 'Jean',
-    lastName: 'Dupont',
-    role: 'technician',
-    phone: '+33987654321',
-    skills: [mockSkills[0], mockSkills[2]],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    email: 'marie.martin@eventpro.com',
-    firstName: 'Marie',
-    lastName: 'Martin',
-    role: 'technician',
-    phone: '+33456789123',
-    skills: [mockSkills[1], mockSkills[3], mockSkills[4]],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-const mockEvents: Event[] = [
-  {
-    id: '1',
-    title: 'Concert Jazz Festival',
-    description: 'Concert de jazz en plein air avec 3 scènes simultanées',
-    startDate: addDays(startOfDay(new Date()), 3),
-    endDate: addDays(startOfDay(new Date()), 3),
-    location: 'Parc Central',
-    type: mockEventTypes[0],
-    requiredTechnicians: [
-      { skillId: '1', count: 2, level: 'expert' },
-      { skillId: '3', count: 3, level: 'intermediate' },
-    ],
-    assignments: [],
-    status: 'published',
-    createdBy: '1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Conférence Tech Summit',
-    description: 'Conférence technologique avec retransmission en direct',
-    startDate: addDays(startOfDay(new Date()), 7),
-    endDate: addDays(startOfDay(new Date()), 7),
-    location: 'Centre de Congrès',
-    type: mockEventTypes[1],
-    requiredTechnicians: [
-      { skillId: '2', count: 1, level: 'intermediate' },
-      { skillId: '5', count: 2, level: 'expert' },
-    ],
-    assignments: [],
-    status: 'draft',
-    createdBy: '1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
 
 export const useAppStore = create<AppStore>((set, get) => ({
   users: [],
@@ -121,79 +30,154 @@ export const useAppStore = create<AppStore>((set, get) => ({
   assignments: [],
   skills: [],
   eventTypes: [],
+  isLoading: false,
 
-  addUser: (userData) => {
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    set(state => ({ users: [...state.users, newUser] }));
+  addUser: async (userData) => {
+    try {
+      const newUser = await userService.create(userData);
+      set(state => ({ users: [...state.users, newUser] }));
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'utilisateur:', error);
+      throw error;
+    }
   },
 
-  updateUser: (id, userData) => {
-    set(state => ({
-      users: state.users.map(user =>
-        user.id === id ? { ...user, ...userData, updatedAt: new Date() } : user
-      )
-    }));
+  updateUser: async (id, userData) => {
+    try {
+      const updatedUser = await userService.update(id, userData);
+      set(state => ({
+        users: state.users.map(user =>
+          user.id === id ? updatedUser : user
+        )
+      }));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
+      throw error;
+    }
   },
 
-  deleteUser: (id) => {
-    set(state => ({ users: state.users.filter(user => user.id !== id) }));
+  deleteUser: async (id) => {
+    try {
+      await userService.delete(id);
+      set(state => ({ users: state.users.filter(user => user.id !== id) }));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'utilisateur:', error);
+      throw error;
+    }
   },
 
-  addEvent: (eventData) => {
-    const newEvent: Event = {
-      ...eventData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    set(state => ({ events: [...state.events, newEvent] }));
+  addEvent: async (eventData) => {
+    try {
+      const newEvent = await eventService.create(eventData);
+      set(state => ({ events: [...state.events, newEvent] }));
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'événement:', error);
+      throw error;
+    }
   },
 
-  updateEvent: (id, eventData) => {
-    set(state => ({
-      events: state.events.map(event =>
-        event.id === id ? { ...event, ...eventData, updatedAt: new Date() } : event
-      )
-    }));
+  updateEvent: async (id, eventData) => {
+    try {
+      const updatedEvent = await eventService.update(id, eventData);
+      set(state => ({
+        events: state.events.map(event =>
+          event.id === id ? updatedEvent : event
+        )
+      }));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'événement:', error);
+      throw error;
+    }
   },
 
-  deleteEvent: (id) => {
-    set(state => ({ events: state.events.filter(event => event.id !== id) }));
+  deleteEvent: async (id) => {
+    try {
+      await eventService.delete(id);
+      set(state => ({ events: state.events.filter(event => event.id !== id) }));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'événement:', error);
+      throw error;
+    }
   },
 
-  addAssignment: (assignmentData) => {
-    const newAssignment: Assignment = {
-      ...assignmentData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    set(state => ({ assignments: [...state.assignments, newAssignment] }));
+  addAssignment: async (assignmentData) => {
+    try {
+      const newAssignment = await assignmentService.create(assignmentData);
+      set(state => ({ assignments: [...state.assignments, newAssignment] }));
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'affectation:', error);
+      throw error;
+    }
   },
 
-  updateAssignment: (id, assignmentData) => {
-    set(state => ({
-      assignments: state.assignments.map(assignment =>
-        assignment.id === id ? { ...assignment, ...assignmentData } : assignment
-      )
-    }));
+  updateAssignment: async (id, assignmentData) => {
+    try {
+      const updatedAssignment = await assignmentService.update(id, assignmentData);
+      set(state => ({
+        assignments: state.assignments.map(assignment =>
+          assignment.id === id ? updatedAssignment : assignment
+        )
+      }));
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de l\'affectation:', error);
+      throw error;
+    }
   },
 
-  deleteAssignment: (id) => {
-    set(state => ({ assignments: state.assignments.filter(assignment => assignment.id !== id) }));
+  deleteAssignment: async (id) => {
+    try {
+      await assignmentService.delete(id);
+      set(state => ({ assignments: state.assignments.filter(assignment => assignment.id !== id) }));
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'affectation:', error);
+      throw error;
+    }
   },
 
-  loadInitialData: () => {
-    set({
-      users: mockUsers,
-      events: mockEvents,
-      assignments: [],
-      skills: mockSkills,
-      eventTypes: mockEventTypes,
-    });
+  loadInitialData: async () => {
+    set({ isLoading: true });
+    
+    try {
+      // Charger les données en parallèle
+      const [users, events, assignments, skills, eventTypes] = await Promise.all([
+        userService.getAll(),
+        eventService.getAll(),
+        assignmentService.getAll(),
+        skillService.getAll(),
+        eventTypeService.getAll(),
+      ]);
+
+      // Si aucune donnée n'existe, initialiser avec les données par défaut
+      if (skills.length === 0) {
+        for (const skill of defaultSkills) {
+          await skillService.create(skill);
+        }
+      }
+
+      if (eventTypes.length === 0) {
+        for (const type of defaultEventTypes) {
+          await eventTypeService.create(type);
+        }
+      }
+
+      set({
+        users,
+        events,
+        assignments,
+        skills: skills.length > 0 ? skills : defaultSkills,
+        eventTypes: eventTypes.length > 0 ? eventTypes : defaultEventTypes,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      set({ isLoading: false });
+      
+      // Gestion d'erreur plus robuste
+      if (error instanceof Error) {
+        throw new Error(`Erreur de chargement: ${error.message}`);
+      } else {
+        throw new Error('Erreur de chargement des données');
+      }
+    }
   },
 }));

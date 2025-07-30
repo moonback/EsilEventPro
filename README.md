@@ -18,6 +18,7 @@ Une application complète de gestion d'événements développée avec React, Typ
 ## 🛠️ Technologies Utilisées
 
 - **Frontend** : React 18+ avec Vite, TypeScript strict
+- **Backend** : Supabase (PostgreSQL + Auth + Real-time)
 - **State Management** : Zustand pour la gestion d'état globale
 - **Styling** : Tailwind CSS avec composants réutilisables
 - **Calendrier** : React Big Calendar avec localisation française
@@ -46,6 +47,34 @@ src/
 
 ### Prérequis
 - Node.js 16+ et npm
+- Compte Supabase (gratuit)
+
+### Configuration Supabase
+
+1. **Créer un projet Supabase :**
+   - Allez sur [supabase.com](https://supabase.com)
+   - Créez un nouveau projet
+   - Notez votre URL et clé anon
+
+2. **Configurer la base de données :**
+   - Copiez le contenu de `supabase-schema.sql`
+   - Exécutez-le dans l'éditeur SQL de Supabase
+
+3. **Configurer les variables d'environnement :**
+   ```bash
+   # Copier le fichier d'exemple
+   cp env.example .env
+   
+   # Éditer avec vos clés Supabase
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
+
+4. **Créer les utilisateurs de test :**
+   - Dans Supabase Auth > Users, créez :
+     - `admin@eventpro.com` / `admin123`
+     - `tech@eventpro.com` / `tech123`
+   - Ajoutez leurs profils dans la table `users`
 
 ### Installation
 ```bash
@@ -60,6 +89,8 @@ npm run dev
 ```
 
 L'application sera accessible sur `http://localhost:5173`
+
+> **Note :** Consultez `SUPABASE_SETUP.md` pour un guide détaillé de configuration.
 
 ## 🔐 Comptes de Démonstration
 

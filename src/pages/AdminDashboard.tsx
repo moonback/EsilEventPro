@@ -16,8 +16,8 @@ export const AdminDashboard: React.FC = () => {
   const [showEventForm, setShowEventForm] = useState(false);
 
   useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
+    // Les données sont maintenant chargées automatiquement dans App.tsx
+  }, []);
 
   // Statistiques
   const stats = {

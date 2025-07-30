@@ -14,22 +14,9 @@ export const TechnicianDashboard: React.FC = () => {
   const [declineReason, setDeclineReason] = useState('');
 
   useEffect(() => {
-    loadInitialData();
-    // Simuler des affectations pour ce technicien à des fins de démonstration
-    if (user && events.length > 0) {
-      const existingAssignments = assignments.filter(a => a.technicianId === user.id);
-      if (existingAssignments.length === 0) {
-        // Créer quelques affectations d'exemple
-        events.slice(0, 3).forEach(event => {
-          addAssignment({
-            eventId: event.id,
-            technicianId: user.id,
-            status: 'pending',
-          });
-        });
-      }
-    }
-  }, [user, events.length]);
+    // Les données sont maintenant chargées automatiquement dans App.tsx
+    // Les affectations seront gérées par l'administrateur via l'interface
+  }, []);
 
   // Affectations pour ce technicien
   const myAssignments = assignments.filter(a => a.technicianId === user?.id);
