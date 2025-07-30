@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Assignment, Event, User } from '../types';
-import { Plus, Edit, Trash2, Calendar, User as UserIcon, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, User as UserIcon, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import toast from 'react-hot-toast';
 
@@ -20,6 +20,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
   const [selectedAssignment, setSelectedAssignment] = useState<AssignmentWithDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
+  const [viewMode, setViewMode] = useState<'assignments' | 'unassigned'>('assignments');
 
   // États pour le formulaire
   const [formData, setFormData] = useState({
@@ -45,6 +46,12 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
       technician
     };
   }).filter(Boolean) as AssignmentWithDetails[];
+
+  // Fonction pour obtenir les événements sans affectation
+  const getUnassignedEvents = () => {
+    const assignedEventIds = assignments.map(assignment => assignment.eventId);
+    return events.filter(event => !assignedEventIds.includes(event.id));
+  };
 
   // Fonction pour obtenir les techniciens disponibles pour un événement
   const getAvailableTechnicians = (eventId: string) => {
@@ -258,40 +265,66 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
         </button>
       </div>
 
-      {/* Filtres */}
+      {/* Onglets de vue */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Rechercher une affectation..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="flex gap-4 mb-4">
+          <button
+            onClick={() => setViewMode('assignments')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              viewMode === 'assignments'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
-            <option value="all">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="accepted">Acceptées</option>
-            <option value="declined">Refusées</option>
-          </select>
+            Affectations ({assignmentsWithDetails.length})
+          </button>
+          <button
+            onClick={() => setViewMode('unassigned')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              viewMode === 'unassigned'
+                ? 'bg-orange-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Événements sans affectation ({getUnassignedEvents().length})
+          </button>
         </div>
+
+        {/* Filtres - seulement pour la vue des affectations */}
+        {viewMode === 'assignments' && (
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Rechercher une affectation..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Tous les statuts</option>
+              <option value="pending">En attente</option>
+              <option value="accepted">Acceptées</option>
+              <option value="declined">Refusées</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Calendar className="h-6 w-6 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total</p>
+              <p className="text-sm font-medium text-gray-600">Total affectations</p>
               <p className="text-2xl font-bold text-gray-900">{assignmentsWithDetails.length}</p>
             </div>
           </div>
@@ -335,144 +368,252 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Liste des affectations */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {assignmentsWithDetails.length === 0 && (
-          <div className="p-8 text-center">
-            <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune affectation trouvée</h3>
-            <p className="text-gray-600 mb-6">
-              Créez votre première affectation ou générez des affectations de test pour commencer
-            </p>
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Créer une affectation
-              </button>
-              <button
-                onClick={createTestAssignments}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <Plus size={16} />
-                Créer des affectations de test
-              </button>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <AlertTriangle className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Sans affectation</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {getUnassignedEvents().length}
+              </p>
             </div>
           </div>
-        )}
-        
-        {assignmentsWithDetails.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Événement
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Technicien
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date de réponse
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAssignments.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center">
-                      <Calendar className="h-12 w-12 text-gray-300 mb-4" />
-                      <p className="text-lg font-medium text-gray-900 mb-2">
-                        Aucune affectation trouvée
-                      </p>
-                      <p className="text-gray-600">
-                        {assignmentsWithDetails.length === 0 
-                          ? 'Créez votre première affectation pour commencer'
-                          : 'Aucune affectation ne correspond à vos critères de recherche'
-                        }
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredAssignments.map((assignment) => (
-                  <tr key={assignment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <Calendar className="h-6 w-6 text-blue-600" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {assignment.event.title}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {assignment.event.location} • {assignment.event.startDate.toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                            <UserIcon className="h-6 w-6 text-green-600" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {assignment.technician.firstName} {assignment.technician.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {assignment.technician.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
-                        {getStatusIcon(assignment.status)}
-                        <span className="ml-1">{getStatusText(assignment.status)}</span>
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {assignment.responseDate ? assignment.responseDate.toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => openEditModal(assignment)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAssignment(assignment.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
         </div>
+      </div>
+
+      {/* Contenu principal */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        {viewMode === 'assignments' ? (
+          // Vue des affectations
+          <>
+            {assignmentsWithDetails.length === 0 && (
+              <div className="p-8 text-center">
+                <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune affectation trouvée</h3>
+                <p className="text-gray-600 mb-6">
+                  Créez votre première affectation ou générez des affectations de test pour commencer
+                </p>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Créer une affectation
+                  </button>
+                  <button
+                    onClick={createTestAssignments}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Créer des affectations de test
+                  </button>
+                </div>
+              </div>
+            )}
+            
+                        {assignmentsWithDetails.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Événement
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Technicien
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date de réponse
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredAssignments.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                        <div className="flex flex-col items-center">
+                          <Calendar className="h-12 w-12 text-gray-300 mb-4" />
+                          <p className="text-lg font-medium text-gray-900 mb-2">
+                            Aucune affectation trouvée
+                          </p>
+                          <p className="text-gray-600">
+                            {assignmentsWithDetails.length === 0 
+                              ? 'Créez votre première affectation pour commencer'
+                              : 'Aucune affectation ne correspond à vos critères de recherche'
+                            }
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAssignments.map((assignment) => (
+                      <tr key={assignment.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Calendar className="h-6 w-6 text-blue-600" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {assignment.event.title}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {assignment.event.location} • {assignment.event.startDate.toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                <UserIcon className="h-6 w-6 text-green-600" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {assignment.technician.firstName} {assignment.technician.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {assignment.technician.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
+                            {getStatusIcon(assignment.status)}
+                            <span className="ml-1">{getStatusText(assignment.status)}</span>
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {assignment.responseDate ? assignment.responseDate.toLocaleDateString() : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => openEditModal(assignment)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAssignment(assignment.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </>
+        ) : (
+          // Vue des événements sans affectation
+          <>
+            {getUnassignedEvents().length === 0 ? (
+              <div className="p-8 text-center">
+                <CheckCircle className="h-16 w-16 text-green-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Tous les événements sont assignés</h3>
+                <p className="text-gray-600 mb-6">
+                  Excellent ! Tous les événements ont au moins un technicien assigné.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Événement
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Lieu
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {getUnassignedEvents().map((event) => (
+                    <tr key={event.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                              <AlertTriangle className="h-6 w-6 text-orange-600" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {event.title}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {event.description}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {event.startDate.toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {event.location}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          Sans affectation
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              eventId: event.id,
+                              technicianId: '',
+                              status: 'pending',
+                              declineReason: ''
+                            });
+                            setShowAddModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                        >
+                          <Plus size={16} />
+                          Assigner
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </>
         )}
       </div>
 
