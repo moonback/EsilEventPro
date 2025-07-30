@@ -7,6 +7,7 @@ import { LoginForm } from './components/Auth/LoginForm';
 import { Layout } from './components/Layout/Layout';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { TechnicianDashboard } from './pages/TechnicianDashboard';
+import { RegisterPage } from './pages/RegisterPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FullScreenLoader } from './components/LoadingSpinner';
 
@@ -33,10 +34,14 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <>
-        <LoginForm />
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
         <Toaster position="top-right" />
-      </>
+      </Router>
     );
   }
 
