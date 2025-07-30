@@ -105,6 +105,7 @@ export const RegisterForm: React.FC = () => {
                     },
                   })}
                   type="text"
+                  autoComplete="given-name"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Votre prénom"
                 />
@@ -126,6 +127,7 @@ export const RegisterForm: React.FC = () => {
                     },
                   })}
                   type="text"
+                  autoComplete="family-name"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Votre nom"
                 />
@@ -148,6 +150,7 @@ export const RegisterForm: React.FC = () => {
                   },
                 })}
                 type="email"
+                autoComplete="email"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="votre.email@example.com"
               />
@@ -163,6 +166,7 @@ export const RegisterForm: React.FC = () => {
               <input
                 {...register('phone')}
                 type="tel"
+                autoComplete="tel"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 placeholder="+33 6 12 34 56 78"
               />
@@ -184,6 +188,7 @@ export const RegisterForm: React.FC = () => {
                       },
                     })}
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="••••••••"
                   />
@@ -214,6 +219,7 @@ export const RegisterForm: React.FC = () => {
                       required: 'Confirmation du mot de passe requise',
                     })}
                     type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="••••••••"
                   />
