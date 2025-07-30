@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp, Filter, SortAsc, FileText } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp, Filter, SortAsc, FileText, Eye, Users, Briefcase } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { Assignment, Event } from '../types';
@@ -14,6 +14,7 @@ export const TechnicianDashboard: React.FC = () => {
   const [declineReason, setDeclineReason] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
+  const [activeTab, setActiveTab] = useState<'assigned' | 'available'>('assigned');
 
   useEffect(() => {
     // Les données sont maintenant chargées automatiquement dans App.tsx
@@ -31,7 +32,19 @@ export const TechnicianDashboard: React.FC = () => {
     assignment: myAssignments.find(a => a.eventId === event.id)!
   }));
 
-  // Filtrage et tri des événements
+  // Missions disponibles (non assignées à ce technicien)
+  const availableEvents = events.filter(event => {
+    // Événements publiés ou confirmés
+    const isPublished = event.status === 'published' || event.status === 'confirmed';
+    // Pas déjà assigné à ce technicien
+    const notAssigned = !myAssignments.some(a => a.eventId === event.id);
+    // Événements futurs
+    const isFuture = new Date(event.startDate) > new Date();
+    
+    return isPublished && notAssigned && isFuture;
+  });
+
+  // Filtrage et tri des événements assignés
   const filteredAndSortedEvents = myEvents
     .filter(eventWithAssignment => {
       if (statusFilter === 'all') return true;
@@ -48,12 +61,18 @@ export const TechnicianDashboard: React.FC = () => {
       }
     });
 
+  // Tri des missions disponibles
+  const sortedAvailableEvents = availableEvents.sort((a, b) => 
+    new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+
   // Statistiques
   const stats = {
     total: myAssignments.length,
     pending: myAssignments.filter(a => a.status === 'pending').length,
     accepted: myAssignments.filter(a => a.status === 'accepted').length,
     declined: myAssignments.filter(a => a.status === 'declined').length,
+    available: availableEvents.length,
   };
 
   const handleAcceptAssignment = (assignment: Assignment) => {
@@ -75,7 +94,7 @@ export const TechnicianDashboard: React.FC = () => {
     toast.success('Réponse enregistrée');
   };
 
-  const getEventStatus = (event: Event & { assignment: Assignment }) => {
+  const getEventStatus = (event: Event & { assignment?: Assignment }) => {
     const eventDate = new Date(event.startDate);
     
     if (isPast(eventDate)) {
@@ -104,6 +123,17 @@ export const TechnicianDashboard: React.FC = () => {
     }
   };
 
+  const getRequiredSkills = (event: Event) => {
+    if (!event.requiredTechnicians || event.requiredTechnicians.length === 0) {
+      return 'Aucune compétence spécifique requise';
+    }
+    
+    return event.requiredTechnicians.map(req => {
+      const skill = useAppStore.getState().skills.find(s => s.id === req.skillId);
+      return `${skill?.name || 'Compétence inconnue'} (${req.count})`;
+    }).join(', ');
+  };
+
   return (
     <div className="space-y-8">
       {/* Header avec statistiques */}
@@ -114,8 +144,8 @@ export const TechnicianDashboard: React.FC = () => {
               <FileText className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Mes Contrats</h1>
-              <p className="text-gray-600">Gérez vos missions et répondez aux affectations</p>
+              <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord Technicien</h1>
+              <p className="text-gray-600">Gérez vos missions et découvrez les nouvelles opportunités</p>
             </div>
           </div>
           
@@ -129,7 +159,7 @@ export const TechnicianDashboard: React.FC = () => {
         </div>
 
         {/* Statistiques */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -137,7 +167,7 @@ export const TechnicianDashboard: React.FC = () => {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-sm text-gray-500">Total contrats</div>
+                <div className="text-sm text-gray-500">Mes contrats</div>
               </div>
             </div>
           </div>
@@ -177,157 +207,296 @@ export const TechnicianDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Eye className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.available}</div>
+                <div className="text-sm text-gray-500">Missions disponibles</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filtres et tri */}
+      {/* Onglets */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filtrer par :</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Tous les contrats</option>
-                <option value="pending">En attente</option>
-                <option value="accepted">Acceptés</option>
-                <option value="declined">Déclinés</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <SortAsc className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Trier par :</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'date' | 'status')}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="date">Date</option>
-              <option value="status">Statut</option>
-            </select>
-          </div>
+        <div className="flex space-x-1">
+          <button
+            onClick={() => setActiveTab('assigned')}
+            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'assigned'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FileText className="h-4 w-4 inline mr-2" />
+            Mes Contrats ({stats.total})
+          </button>
+          <button
+            onClick={() => setActiveTab('available')}
+            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'available'
+                ? 'bg-purple-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Eye className="h-4 w-4 inline mr-2" />
+            Missions Disponibles ({stats.available})
+          </button>
         </div>
       </div>
 
-      {/* Contrats */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
-            <FileText className="h-6 w-6 text-blue-600" />
-            <span>Mes Contrats</span>
-          </h2>
-          <span className="text-sm text-gray-500">
-            {filteredAndSortedEvents.length} contrat{filteredAndSortedEvents.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {filteredAndSortedEvents.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {statusFilter === 'all' ? 'Aucun contrat pour le moment' : 'Aucun contrat avec ce statut'}
-            </h3>
-            <p className="text-gray-600">
-              {statusFilter === 'all' 
-                ? 'Vous recevrez des notifications quand de nouveaux contrats vous seront assignés.'
-                : 'Aucun contrat ne correspond au filtre sélectionné.'
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAndSortedEvents.map((eventWithAssignment) => {
-              const event = eventWithAssignment;
-              const assignment = eventWithAssignment.assignment;
-              const status = getEventStatus(eventWithAssignment);
-              const assignmentStatus = getAssignmentStatus(assignment);
-              const StatusIcon = status.icon;
-              const AssignmentStatusIcon = assignmentStatus.icon;
-
-              return (
-                <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${status.color}`}>
-                        <StatusIcon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                        <p className="text-sm text-gray-500">{event.location}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignmentStatus.color}`}>
-                        <AssignmentStatusIcon className="h-3 w-3 inline mr-1" />
-                        {assignmentStatus.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>{format(new Date(event.startDate), 'dd MMM yyyy à HH:mm', { locale: fr })}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{event.location}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Clock className="h-4 w-4" />
-                      <span>{format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}</span>
-                    </div>
-
-                    {event.description && (
-                      <div className="text-sm text-gray-600">
-                        <p className="line-clamp-2">{event.description}</p>
-                      </div>
-                    )}
-
-                    {assignment.declineReason && (
-                      <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                        <p className="text-sm text-red-800">
-                          <strong>Raison du refus :</strong> {assignment.declineReason}
-                        </p>
-                      </div>
-                    )}
-
-                    {assignment.status === 'pending' && (
-                      <div className="flex space-x-2 pt-3 border-t border-gray-100">
-                        <button
-                          onClick={() => handleAcceptAssignment(assignment)}
-                          className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          <CheckCircle className="h-4 w-4 inline mr-1" />
-                          Accepter
-                        </button>
-                        <button
-                          onClick={() => setSelectedAssignment(assignment)}
-                          className="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <XCircle className="h-4 w-4 inline mr-1" />
-                          Décliner
-                        </button>
-                      </div>
-                    )}
-                  </div>
+      {/* Contenu des onglets */}
+      {activeTab === 'assigned' ? (
+        <>
+          {/* Filtres et tri pour les contrats assignés */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Filtrer par :</span>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Tous les contrats</option>
+                    <option value="pending">En attente</option>
+                    <option value="accepted">Acceptés</option>
+                    <option value="declined">Déclinés</option>
+                  </select>
                 </div>
-              );
-            })}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <SortAsc className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Trier par :</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'date' | 'status')}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="date">Date</option>
+                  <option value="status">Statut</option>
+                </select>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Contrats assignés */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
+                <FileText className="h-6 w-6 text-blue-600" />
+                <span>Mes Contrats</span>
+              </h2>
+              <span className="text-sm text-gray-500">
+                {filteredAndSortedEvents.length} contrat{filteredAndSortedEvents.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {filteredAndSortedEvents.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {statusFilter === 'all' ? 'Aucun contrat pour le moment' : 'Aucun contrat avec ce statut'}
+                </h3>
+                <p className="text-gray-600">
+                  {statusFilter === 'all' 
+                    ? 'Vous recevrez des notifications quand de nouveaux contrats vous seront assignés.'
+                    : 'Aucun contrat ne correspond au filtre sélectionné.'
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAndSortedEvents.map((eventWithAssignment) => {
+                  const event = eventWithAssignment;
+                  const assignment = eventWithAssignment.assignment;
+                  const status = getEventStatus(eventWithAssignment);
+                  const assignmentStatus = getAssignmentStatus(assignment);
+                  const StatusIcon = status.icon;
+                  const AssignmentStatusIcon = assignmentStatus.icon;
+
+                  return (
+                    <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${status.color}`}>
+                            <StatusIcon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                            <p className="text-sm text-gray-500">{event.location}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignmentStatus.color}`}>
+                            <AssignmentStatusIcon className="h-3 w-3 inline mr-1" />
+                            {assignmentStatus.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Calendar className="h-4 w-4" />
+                          <span>{format(new Date(event.startDate), 'dd MMM yyyy à HH:mm', { locale: fr })}</span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <MapPin className="h-4 w-4" />
+                          <span>{event.location}</span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Clock className="h-4 w-4" />
+                          <span>{format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}</span>
+                        </div>
+
+                        {event.description && (
+                          <div className="text-sm text-gray-600">
+                            <p className="line-clamp-2">{event.description}</p>
+                          </div>
+                        )}
+
+                        {assignment.declineReason && (
+                          <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                            <p className="text-sm text-red-800">
+                              <strong>Raison du refus :</strong> {assignment.declineReason}
+                            </p>
+                          </div>
+                        )}
+
+                        {assignment.status === 'pending' && (
+                          <div className="flex space-x-2 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={() => handleAcceptAssignment(assignment)}
+                              className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                              <CheckCircle className="h-4 w-4 inline mr-1" />
+                              Accepter
+                            </button>
+                            <button
+                              onClick={() => setSelectedAssignment(assignment)}
+                              className="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                              <XCircle className="h-4 w-4 inline mr-1" />
+                              Décliner
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Missions disponibles */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
+                <Eye className="h-6 w-6 text-purple-600" />
+                <span>Missions Disponibles</span>
+              </h2>
+              <span className="text-sm text-gray-500">
+                {sortedAvailableEvents.length} mission{sortedAvailableEvents.length !== 1 ? 's' : ''} disponible{sortedAvailableEvents.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {sortedAvailableEvents.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Eye className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Aucune mission disponible pour le moment
+                </h3>
+                <p className="text-gray-600">
+                  Les nouvelles missions apparaîtront ici dès qu'elles seront publiées par l'administrateur.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sortedAvailableEvents.map((event) => {
+                  const status = getEventStatus(event);
+
+                  return (
+                    <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${status.color}`}>
+                            <status.icon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                            <p className="text-sm text-gray-500">{event.location}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            <Briefcase className="h-3 w-3 inline mr-1" />
+                            Disponible
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Calendar className="h-4 w-4" />
+                          <span>{format(new Date(event.startDate), 'dd MMM yyyy à HH:mm', { locale: fr })}</span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <MapPin className="h-4 w-4" />
+                          <span>{event.location}</span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Clock className="h-4 w-4" />
+                          <span>{format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}</span>
+                        </div>
+
+                        {event.description && (
+                          <div className="text-sm text-gray-600">
+                            <p className="line-clamp-2">{event.description}</p>
+                          </div>
+                        )}
+
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <Users className="h-4 w-4" />
+                          <span className="text-sm text-gray-600">
+                            <strong>Compétences requises :</strong> {getRequiredSkills(event)}
+                          </span>
+                        </div>
+
+                        <div className="pt-3 border-t border-gray-100">
+                          <p className="text-xs text-gray-500 text-center">
+                            Cette mission sera visible par l'administrateur pour l'assignation
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Modal de refus */}
       {selectedAssignment && (
