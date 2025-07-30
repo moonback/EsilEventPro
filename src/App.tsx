@@ -7,6 +7,7 @@ import { LoginForm } from './components/Auth/LoginForm';
 import { Layout } from './components/Layout/Layout';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { TechnicianDashboard } from './pages/TechnicianDashboard';
+import { TechnicianProfile } from './pages/TechnicianProfile';
 import { RegisterPage } from './pages/RegisterPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FullScreenLoader } from './components/LoadingSpinner';
@@ -73,7 +74,7 @@ function App() {
               <>
                 <Route path="/technician" element={<TechnicianDashboard />} />
                 <Route path="/technician/calendar" element={<TechnicianCalendar />} />
-                <Route path="/technician/profile" element={<div>Profil technicien (à venir)</div>} />
+                <Route path="/technician/profile" element={<TechnicianProfile />} />
                 <Route path="*" element={<Navigate to="/technician" replace />} />
               </>
             )}

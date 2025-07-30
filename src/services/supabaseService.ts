@@ -489,4 +489,42 @@ export const assignmentService = {
     const { error } = await supabase.from('assignments').delete().eq('id', id);
     if (error) throw error;
   },
+};
+
+// Service pour les compétences utilisateur
+export const userSkillsService = {
+  async getUserSkills(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from('user_skills')
+      .select('skill_id')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    return data?.map(item => item.skill_id) || [];
+  },
+
+  async updateUserSkills(userId: string, skillIds: string[]): Promise<void> {
+    // Supprimer toutes les compétences actuelles
+    const { error: deleteError } = await supabase
+      .from('user_skills')
+      .delete()
+      .eq('user_id', userId);
+
+    if (deleteError) throw deleteError;
+
+    // Ajouter les nouvelles compétences
+    if (skillIds.length > 0) {
+      const userSkillsData = skillIds.map(skillId => ({
+        user_id: userId,
+        skill_id: skillId,
+      }));
+
+      const { error: insertError } = await supabase
+        .from('user_skills')
+        .insert(userSkillsData);
+
+      if (insertError) throw insertError;
+    }
+  },
 }; 
