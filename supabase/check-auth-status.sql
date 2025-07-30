@@ -1,96 +1,104 @@
--- Script pour vérifier l'état de l'authentification et des rôles
+-- Script pour vérifier l'état de l'authentification et des politiques RLS
 -- À exécuter dans l'éditeur SQL de Supabase
 
--- 1. Vérifier les utilisateurs existants et leurs rôles
+-- ÉTAPE 1: VÉRIFIER L'ÉTAT ACTUEL DE L'UTILISATEUR
 SELECT 
-  id,
-  email,
-  role,
-  created_at,
-  updated_at
-FROM auth.users
-ORDER BY created_at DESC;
+  'État utilisateur actuel' as info,
+  current_user as current_user,
+  session_user as session_user,
+  auth.uid() as auth_uid,
+  auth.role() as auth_role,
+  auth.jwt() ->> 'role' as jwt_role;
 
--- 2. Vérifier les utilisateurs dans la table users
-SELECT 
-  id,
-  email,
-  role,
-  first_name,
-  last_name,
-  created_at,
-  updated_at
-FROM users
-ORDER BY created_at DESC;
-
--- 3. Vérifier les politiques RLS actuelles
-SELECT 
-  schemaname, 
-  tablename, 
-  policyname, 
-  permissive, 
-  roles, 
-  cmd, 
-  qual, 
-  with_check 
-FROM pg_policies 
-WHERE schemaname = 'public'
-ORDER BY tablename, policyname;
-
--- 4. Vérifier les permissions sur les tables
-SELECT 
-  table_name,
-  privilege_type,
-  grantee
-FROM information_schema.role_table_grants 
-WHERE table_schema = 'public'
-ORDER BY table_name, privilege_type;
-
--- 5. Vérifier si RLS est activé sur toutes les tables
+-- ÉTAPE 2: VÉRIFIER L'ÉTAT DE RLS SUR TOUTES LES TABLES
 SELECT 
   schemaname,
   tablename,
-  rowsecurity
+  rowsecurity,
+  CASE 
+    WHEN rowsecurity THEN 'RLS activé'
+    ELSE 'RLS désactivé'
+  END as rls_status
 FROM pg_tables 
 WHERE schemaname = 'public'
+AND tablename IN ('users', 'skills', 'user_skills', 'assignments', 'events', 'event_types', 'event_requirements')
 ORDER BY tablename;
 
--- 6. Créer un utilisateur de test admin si nécessaire
--- Décommentez les lignes suivantes si vous voulez créer un utilisateur admin de test
-/*
-INSERT INTO auth.users (
-  id,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  role
-) VALUES (
-  gen_random_uuid(),
-  'admin@esil-events.com',
-  crypt('admin123', gen_salt('bf')),
-  now(),
-  now(),
-  now(),
-  'admin'
-);
+-- ÉTAPE 3: VÉRIFIER LES POLITIQUES SUR event_requirements
+SELECT 
+  tablename,
+  policyname,
+  cmd,
+  permissive,
+  roles,
+  qual,
+  with_check
+FROM pg_policies 
+WHERE tablename = 'event_requirements'
+ORDER BY policyname;
 
-INSERT INTO users (
-  id,
-  email,
-  first_name,
-  last_name,
-  role,
-  created_at,
-  updated_at
-) VALUES (
-  (SELECT id FROM auth.users WHERE email = 'admin@esil-events.com'),
-  'admin@esil-events.com',
-  'Admin',
-  'User',
-  'admin',
-  now(),
-  now()
-);
-*/ 
+-- ÉTAPE 4: COMPTER LES POLITIQUES PAR TABLE
+SELECT 
+  tablename,
+  COUNT(*) as policy_count,
+  STRING_AGG(policyname, ', ' ORDER BY policyname) as policies
+FROM pg_policies 
+WHERE schemaname = 'public'
+AND tablename IN ('users', 'skills', 'user_skills', 'assignments', 'events', 'event_types', 'event_requirements')
+GROUP BY tablename
+ORDER BY tablename;
+
+-- ÉTAPE 5: VÉRIFIER LES DONNÉES EXISTANTES
+SELECT 
+  'Événements' as table_name,
+  COUNT(*) as record_count
+FROM events
+UNION ALL
+SELECT 
+  'Compétences' as table_name,
+  COUNT(*) as record_count
+FROM skills
+UNION ALL
+SELECT 
+  'Exigences' as table_name,
+  COUNT(*) as record_count
+FROM event_requirements;
+
+-- ÉTAPE 6: VÉRIFIER LES UTILISATEURS
+SELECT 
+  'Utilisateurs' as table_name,
+  COUNT(*) as record_count
+FROM users;
+
+-- ÉTAPE 7: TESTER L'ACCÈS EN LECTURE
+SELECT 
+  'Test lecture events' as test,
+  COUNT(*) as count
+FROM events
+UNION ALL
+SELECT 
+  'Test lecture skills' as test,
+  COUNT(*) as count
+FROM skills
+UNION ALL
+SELECT 
+  'Test lecture event_requirements' as test,
+  COUNT(*) as count
+FROM event_requirements;
+
+-- ÉTAPE 8: VÉRIFIER LES CONTRAINTES DE CLÉS ÉTRANGÈRES
+SELECT 
+  tc.table_name,
+  tc.constraint_name,
+  tc.constraint_type,
+  kcu.column_name,
+  ccu.table_name AS foreign_table_name,
+  ccu.column_name AS foreign_column_name
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu 
+  ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage ccu 
+  ON ccu.constraint_name = tc.constraint_name
+WHERE tc.table_schema = 'public'
+AND tc.table_name = 'event_requirements'
+AND tc.constraint_type = 'FOREIGN KEY'; 
