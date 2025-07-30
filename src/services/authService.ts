@@ -50,43 +50,47 @@ export const authService = {
     if (authError) throw authError;
     if (!authData.user) throw new Error('Erreur lors de la création du compte');
 
-    // Créer le profil utilisateur dans notre table users
-    const { data: profileData, error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email: userData.email,
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        role: userData.role,
-        phone: userData.phone,
-      })
-      .select()
-      .single();
+    try {
+      // Utiliser la fonction SQL pour créer l'utilisateur avec ses compétences
+      const skillIds = userData.skills.map(skill => skill.id);
+      
+                const { data: result, error: functionError } = await supabase.rpc('create_user_with_skills', {
+            p_user_id: authData.user.id,
+            p_user_email: userData.email,
+            p_user_first_name: userData.firstName,
+            p_user_last_name: userData.lastName,
+            p_user_role: userData.role,
+            p_user_phone: userData.phone,
+            p_skill_ids: skillIds
+          });
 
-    if (profileError) throw profileError;
+      if (functionError) {
+        console.error('Erreur lors de la création du profil:', functionError);
+        
+        // Gérer les erreurs spécifiques
+        if (functionError.message && functionError.message.includes('violates foreign key constraint')) {
+          throw new Error('Certaines compétences sélectionnées ne sont pas disponibles. Veuillez réessayer.');
+        }
+        
+        throw new Error('Erreur lors de la création du profil utilisateur');
+      }
 
-    // Ajouter les compétences si fournies
-    if (userData.skills.length > 0) {
-      const skillInserts = userData.skills.map(skill => ({
-        user_id: authData.user.id,
-        skill_id: skill.id,
-      }));
-
-      await supabase.from('user_skills').insert(skillInserts);
+      return {
+        id: result.id,
+        email: result.email,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        role: result.role,
+        phone: result.phone,
+        skills: userData.skills,
+        createdAt: new Date(result.createdAt),
+        updatedAt: new Date(result.updatedAt),
+      };
+    } catch (error) {
+      // Si l'insertion dans la table users échoue, supprimer l'utilisateur Auth
+      console.error('Erreur lors de l\'inscription:', error);
+      throw new Error('Erreur lors de l\'inscription. Veuillez réessayer.');
     }
-
-    return {
-      id: profileData.id,
-      email: profileData.email,
-      firstName: profileData.first_name,
-      lastName: profileData.last_name,
-      role: profileData.role,
-      phone: profileData.phone,
-      skills: userData.skills,
-      createdAt: new Date(profileData.created_at),
-      updatedAt: new Date(profileData.updated_at),
-    };
   },
 
   async logout(): Promise<void> {

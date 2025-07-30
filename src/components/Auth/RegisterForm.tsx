@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { Eye, EyeOff, Calendar, Loader2, Plus, X } from 'lucide-react';
 import { RegisterData, Skill } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useAppStore } from '../../store/useAppStore';
+import { defaultSkills } from '../../config/defaultData';
 import toast from 'react-hot-toast';
 
 interface RegisterFormData extends Omit<RegisterData, 'role'> {
@@ -15,7 +15,7 @@ export const RegisterForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register: registerUser, isLoading } = useAuthStore();
-  const { skills } = useAppStore();
+  const skills = defaultSkills; // Utiliser les compétences par défaut
   
   const {
     register,
@@ -28,6 +28,7 @@ export const RegisterForm: React.FC = () => {
     defaultValues: {
       selectedSkills: [],
     },
+    mode: 'onChange',
   });
 
   const selectedSkills = watch('selectedSkills');
@@ -35,6 +36,11 @@ export const RegisterForm: React.FC = () => {
   const onSubmit = async (data: RegisterFormData) => {
     if (data.password !== data.confirmPassword) {
       toast.error('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (data.selectedSkills.length === 0) {
+      toast.error('Veuillez sélectionner au moins une compétence');
       return;
     }
 
@@ -241,11 +247,16 @@ export const RegisterForm: React.FC = () => {
               </div>
             </div>
 
-            {/* Compétences */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Compétences techniques *
-              </label>
+                         {/* Compétences */}
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-3">
+                 Compétences techniques *
+               </label>
+               {selectedSkills.length === 0 && (
+                 <p className="text-sm text-red-600 mb-3">
+                   Veuillez sélectionner au moins une compétence
+                 </p>
+               )}
               
               {/* Compétences sélectionnées */}
               {selectedSkills.length > 0 && (
