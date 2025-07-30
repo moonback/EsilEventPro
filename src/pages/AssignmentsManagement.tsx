@@ -167,7 +167,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
 
   // Fonction pour obtenir les techniciens disponibles pour un événement
   const getAvailableTechnicians = (eventId: string) => {
-    if (!eventId) return technicians;
+    if (!eventId || !technicians.length) return technicians;
     
     // Obtenir les techniciens déjà assignés à cet événement
     const assignedTechnicianIds = assignments
@@ -184,17 +184,12 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     e.preventDefault();
     
     try {
-      // Vérifier si l'affectation existe déjà
-      const { data: existingAssignment, error: checkError } = await supabase
-        .from('assignments')
-        .select('id')
-        .eq('event_id', formData.eventId)
-        .eq('technician_id', formData.technicianId)
-        .single();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
+      // Vérifier si l'affectation existe déjà en utilisant les données locales
+      const existingAssignment = assignments.find(
+        assignment => 
+          assignment.eventId === formData.eventId && 
+          assignment.technicianId === formData.technicianId
+      );
 
       if (existingAssignment) {
         alert('Ce technicien est déjà assigné à cet événement.');

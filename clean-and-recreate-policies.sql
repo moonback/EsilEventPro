@@ -41,6 +41,9 @@ FOR SELECT USING (true);
 CREATE POLICY "Admins can manage user skills" ON user_skills 
 FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 
+CREATE POLICY "Authenticated users can create user skills" ON user_skills 
+FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
 CREATE POLICY "Users can view own skills" ON user_skills 
 FOR SELECT USING (auth.uid() = user_id);
 
