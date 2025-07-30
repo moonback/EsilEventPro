@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { Event } from '../types';
+import { useAuthStore } from '../store/useAuthStore';
+import { Event, EventFormData } from '../types';
 import { isToday, isTomorrow, isPast } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -11,13 +12,15 @@ import { EventsFilters } from '../components/Events/EventsFilters';
 import { EventsBulkActions } from '../components/Events/EventsBulkActions';
 import { EventsTable } from '../components/Events/EventsTable';
 import { EventsPagination } from '../components/Events/EventsPagination';
+import { ICalImportModal } from '../components/Events/ICalImportModal';
 
 interface EventsManagementProps {
   onNavigate: (page: string) => void;
 }
 
 const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
-  const { events, eventTypes, users, deleteEvent, updateEventStatus } = useAppStore();
+  const { events, eventTypes, users, deleteEvent, updateEventStatus, addEventsBulk } = useAppStore();
+  const { user } = useAuthStore();
   
   // États locaux
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +33,8 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showICalImport, setShowICalImport] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const eventsPerPage = 20;
 
   // Fermer le menu de statut quand on clique ailleurs
@@ -202,6 +207,29 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
     return { text: 'À venir', color: 'text-green-600' };
   };
 
+  const handleImportICal = async (events: EventFormData[]) => {
+    if (!user) {
+      toast.error('Vous devez être connecté pour importer des événements');
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const eventsWithUser = events.map(event => ({
+        ...event,
+        createdBy: user.id
+      }));
+
+      await addEventsBulk(eventsWithUser);
+      toast.success(`${events.length} événement(s) importé(s) avec succès`);
+    } catch (error) {
+      console.error('Erreur lors de l\'import:', error);
+      toast.error('Erreur lors de l\'import des événements');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-12xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -236,6 +264,7 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
           totalEvents={paginatedEvents.length}
           onSelectAll={handleSelectAll}
           onBulkDelete={handleBulkDelete}
+          onImportICal={() => setShowICalImport(true)}
         />
 
         {/* Tableau des événements */}
@@ -258,6 +287,15 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
           currentPage={currentPage}
           eventsPerPage={eventsPerPage}
           onPageChange={handlePageChange}
+        />
+
+        {/* Modal d'import iCal */}
+        <ICalImportModal
+          isOpen={showICalImport}
+          onClose={() => setShowICalImport(false)}
+          onImport={handleImportICal}
+          eventTypes={eventTypes}
+          isLoading={isImporting}
         />
       </div>
     </div>
