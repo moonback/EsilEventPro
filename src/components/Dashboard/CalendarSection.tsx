@@ -1,7 +1,7 @@
 import React from 'react';
-import { EventCalendar } from '../Calendar/EventCalendar';
+import { Calendar, Clock, MapPin, Users, ChevronRight } from 'lucide-react';
 import { Event } from '../../types';
-import { Calendar, TrendingUp, Clock } from 'lucide-react';
+import { EventCalendar } from '../Calendar/EventCalendar';
 
 interface CalendarSectionProps {
   weeklyEvents: number;
@@ -17,52 +17,41 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   onDeleteEvent,
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Header de la section */}
-      <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-8 py-6 border-b border-gray-100">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Header compact */}
+      <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-4 py-3 border-b border-gray-100">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
-              <Calendar className="h-6 w-6 text-blue-600" />
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Calendar className="h-3 w-3 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Calendrier des événements</h2>
-              <p className="text-gray-600">Gérez et visualisez tous vos événements</p>
+              <h3 className="text-sm font-bold text-gray-900">Calendrier des événements</h3>
+              <p className="text-xs text-gray-600">{weeklyEvents} événements cette semaine</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-6">
-            <div className="text-center">
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-gray-600">Cette semaine</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{weeklyEvents}</p>
-              <p className="text-xs text-gray-500">événements</p>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 text-xs text-gray-600">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span>Confirmés</span>
             </div>
-            
-            <div className="text-center">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-gray-600">Prochain</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">3</p>
-              <p className="text-xs text-gray-500">heures</p>
+            <div className="flex items-center space-x-1 text-xs text-gray-600">
+              <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+              <span>En attente</span>
             </div>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
           </div>
         </div>
       </div>
       
-      {/* Contenu du calendrier */}
-      <div className="p-6">
-        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-100">
-          <EventCalendar
-            onSelectEvent={onSelectEvent}
-            onSelectSlot={onSelectSlot}
-            onDeleteEvent={onDeleteEvent}
-            height={500}
-          />
-        </div>
+      {/* Calendrier compact */}
+      <div className="p-4">
+        <EventCalendar
+          onSelectEvent={onSelectEvent}
+          onSelectSlot={onSelectSlot}
+          onDeleteEvent={onDeleteEvent}
+          height={500}
+        />
       </div>
     </div>
   );

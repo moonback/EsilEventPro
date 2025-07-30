@@ -1,60 +1,64 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster, toast } from 'react-hot-toast';
-import { useAuthStore } from './store/useAuthStore';
-import { useAppStore } from './store/useAppStore';
-import { LoginForm } from './components/Auth/LoginForm';
-import { Layout } from './components/Layout/Layout';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { TechnicianDashboard } from './pages/TechnicianDashboard';
-import { TechnicianProfile } from './pages/TechnicianProfile';
-import { RegisterPage } from './pages/RegisterPage';
+import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { FullScreenLoader } from './components/LoadingSpinner';
+import { Layout } from './components/Layout/Layout';
+import { useAuthStore } from './store/useAuthStore';
+import { AdminDashboard } from './pages/AdminDashboard';
+import EventsManagement from './pages/EventsManagement';
+import CreateEvent from './pages/CreateEvent';
 import PersonnelManagement from './pages/PersonnelManagement';
 import SkillsManagement from './pages/SkillsManagement';
 import AssignmentsManagement from './pages/AssignmentsManagement';
-import EventsManagement from './pages/EventsManagement';
-import CreateEvent from './pages/CreateEvent';
+import { TechnicianDashboard } from './pages/TechnicianDashboard';
 import { TechnicianCalendar } from './pages/TechnicianCalendar';
+import { TechnicianProfile } from './pages/TechnicianProfile';
+import { ToastContainer } from './components/Toast';
+import { RegisterPage } from './pages/RegisterPage';
 
 function App() {
   const { isAuthenticated, user, initializeAuth } = useAuthStore();
-  const { loadInitialData, isLoading } = useAppStore();
 
   useEffect(() => {
-    // Initialiser l'authentification au démarrage
     initializeAuth();
   }, [initializeAuth]);
 
-  useEffect(() => {
-    // Charger les données si l'utilisateur est authentifié
-    if (isAuthenticated) {
-      loadInitialData().catch(error => {
-        console.error('Erreur lors du chargement des données:', error);
-        // Ne pas afficher l'erreur à l'utilisateur si c'est une erreur 401 (non authentifié)
-        if (error.message && !error.message.includes('401')) {
-          toast.error('Erreur lors du chargement des données');
-        }
-      });
-    }
-  }, [isAuthenticated, loadInitialData]);
-
-  // Afficher un loader pendant le chargement
-  if (isLoading) {
-    return <FullScreenLoader text="Chargement des données..." />;
-  }
-
   if (!isAuthenticated) {
     return (
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginForm />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-        <Toaster position="top-right" />
-      </Router>
+      <ErrorBoundary>
+        <Router>
+          <Routes>
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#fff',
+                color: '#333',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          <ToastContainer />
+        </Router>
+      </ErrorBoundary>
     );
   }
 
@@ -83,7 +87,32 @@ function App() {
             )}
           </Routes>
         </Layout>
-        <Toaster position="top-right" />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#fff',
+              color: '#333',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
+        <ToastContainer />
       </Router>
     </ErrorBoundary>
   );

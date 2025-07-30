@@ -16,7 +16,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ stats }) => {
     {
       title: 'Événements',
       value: stats.totalEvents,
-      subtitle: 'Total des événements créés',
+      subtitle: 'Total créés',
       icon: Calendar,
       iconColor: 'text-blue-600',
       iconBgColor: 'bg-blue-50',
@@ -27,7 +27,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ stats }) => {
     {
       title: 'Techniciens',
       value: stats.totalTechnicians,
-      subtitle: 'Équipe technique active',
+      subtitle: 'Équipe active',
       icon: Users,
       iconColor: 'text-emerald-600',
       iconBgColor: 'bg-emerald-50',
@@ -36,9 +36,9 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ stats }) => {
       trendColor: 'text-green-600',
     },
     {
-      title: 'Taux de réussite',
+      title: 'Réussite',
       value: `${stats.eventCompletionRate}%`,
-      subtitle: 'Événements terminés avec succès',
+      subtitle: 'Événements terminés',
       icon: Target,
       iconColor: 'text-purple-600',
       iconBgColor: 'bg-purple-50',
@@ -49,7 +49,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ stats }) => {
     {
       title: 'Acceptation',
       value: `${stats.assignmentAcceptanceRate}%`,
-      subtitle: 'Taux d\'acceptation des affectations',
+      subtitle: 'Taux d\'acceptation',
       icon: Award,
       iconColor: 'text-amber-600',
       iconBgColor: 'bg-amber-50',
@@ -60,7 +60,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ stats }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       {metrics.map((metric, index) => (
         <MetricsCard key={index} {...metric} />
       ))}
