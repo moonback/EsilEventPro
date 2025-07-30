@@ -1,7 +1,7 @@
+@import './styles/calendar.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import './styles/calendar.css';
 
 /* Styles globaux pour l'application */
 body {
