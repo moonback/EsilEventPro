@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { Assignment, Event } from '../types';
@@ -60,18 +60,18 @@ export const TechnicianDashboard: React.FC = () => {
     const eventDate = new Date(event.startDate);
     
     if (isPast(eventDate)) {
-      return { label: 'Terminé', color: 'bg-gray-100 text-gray-800' };
+      return { label: 'Terminé', color: 'bg-gray-100 text-gray-800', icon: CheckCircle };
     }
     
     if (isToday(eventDate)) {
-      return { label: "Aujourd'hui", color: 'bg-blue-100 text-blue-800' };
+      return { label: "Aujourd'hui", color: 'bg-blue-100 text-blue-800', icon: Calendar };
     }
     
     if (isTomorrow(eventDate)) {
-      return { label: 'Demain', color: 'bg-yellow-100 text-yellow-800' };
+      return { label: 'Demain', color: 'bg-yellow-100 text-yellow-800', icon: Clock };
     }
     
-    return { label: 'À venir', color: 'bg-green-100 text-green-800' };
+    return { label: 'À venir', color: 'bg-green-100 text-green-800', icon: TrendingUp };
   };
 
   const getAssignmentStatus = (assignment: Assignment) => {
@@ -86,200 +86,210 @@ export const TechnicianDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes Missions</h1>
-          <p className="text-gray-600">
-            Gérez vos affectations et disponibilités
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium text-white">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
-            </span>
+    <div className="space-y-8">
+      {/* Header avec statistiques */}
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+              <User className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Mes Missions</h1>
+              <p className="text-gray-600">Gérez vos affectations et disponibilités</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium text-gray-900">
-              {user?.firstName} {user?.lastName}
-            </p>
-            <p className="text-sm text-gray-500">Technicien</p>
+          
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
+              <span className="text-sm font-medium text-gray-700">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Statistiques */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <CalendarDays className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-sm text-gray-500">Total missions</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.pending}</div>
+                <div className="text-sm text-gray-500">En attente</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.accepted}</div>
+                <div className="text-sm text-gray-500">Acceptées</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <XCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.declined}</div>
+                <div className="text-sm text-gray-500">Déclinées</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-blue-600" />
+      {/* Missions */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
+            <Calendar className="h-6 w-6 text-blue-600" />
+            <span>Mes Missions</span>
+          </h2>
+          <span className="text-sm text-gray-500">
+            {myEvents.length} mission{myEvents.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {myEvents.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="h-8 w-8 text-gray-400" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Missions</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune mission pour le moment</h3>
+            <p className="text-gray-600">Vous recevrez des notifications quand de nouvelles missions vous seront assignées.</p>
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">En attente</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Acceptées</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.accepted}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <XCircle className="h-6 w-6 text-red-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Déclinées</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.declined}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Liste des missions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Mes affectations</h3>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          {myEvents.length > 0 ? (
-            myEvents.map(event => {
-              const eventStatus = getEventStatus(event);
-              const assignmentStatus = getAssignmentStatus(event.assignment);
-              const StatusIcon = assignmentStatus.icon;
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {myEvents.map((eventWithAssignment) => {
+              const event = eventWithAssignment;
+              const assignment = eventWithAssignment.assignment;
+              const status = getEventStatus(eventWithAssignment);
+              const assignmentStatus = getAssignmentStatus(assignment);
+              const StatusIcon = status.icon;
+              const AssignmentStatusIcon = assignmentStatus.icon;
 
               return (
-                <div key={event.id} className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h4 className="text-lg font-medium text-gray-900">{event.title}</h4>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${eventStatus.color}`}>
-                          {eventStatus.label}
-                        </span>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${assignmentStatus.color}`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {assignmentStatus.label}
-                        </span>
+                <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${status.color}`}>
+                        <StatusIcon className="h-5 w-5" />
                       </div>
-
-                      <p className="text-gray-600 mb-3">{event.description}</p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {format(new Date(event.startDate), 'dd MMMM yyyy', { locale: fr })}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
-                          {format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}
-                        </div>
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2" />
-                          {event.location}
-                        </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                        <p className="text-sm text-gray-500">{event.location}</p>
                       </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignmentStatus.color}`}>
+                        <AssignmentStatusIcon className="h-3 w-3 inline mr-1" />
+                        {assignmentStatus.label}
+                      </span>
+                    </div>
+                  </div>
 
-                      {event.assignment.status === 'declined' && event.assignment.declineReason && (
-                        <div className="mt-3 p-3 bg-red-50 rounded-md">
-                          <p className="text-sm text-red-800">
-                            <strong>Raison du refus :</strong> {event.assignment.declineReason}
-                          </p>
-                        </div>
-                      )}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>{format(new Date(event.startDate), 'dd MMM yyyy à HH:mm', { locale: fr })}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <MapPin className="h-4 w-4" />
+                      <span>{event.location}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <Clock className="h-4 w-4" />
+                      <span>{format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}</span>
                     </div>
 
-                    {event.assignment.status === 'pending' && !isPast(new Date(event.startDate)) && (
-                      <div className="flex items-center space-x-3 ml-6">
+                    {assignment.declineReason && (
+                      <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                        <p className="text-sm text-red-800">
+                          <strong>Raison du refus :</strong> {assignment.declineReason}
+                        </p>
+                      </div>
+                    )}
+
+                    {assignment.status === 'pending' && (
+                      <div className="flex space-x-2 pt-3 border-t border-gray-100">
                         <button
-                          onClick={() => handleAcceptAssignment(event.assignment)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
+                          onClick={() => handleAcceptAssignment(assignment)}
+                          className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                         >
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Accepter</span>
+                          <CheckCircle className="h-4 w-4 inline mr-1" />
+                          Accepter
                         </button>
                         <button
-                          onClick={() => setSelectedAssignment(event.assignment)}
-                          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
+                          onClick={() => setSelectedAssignment(assignment)}
+                          className="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                         >
-                          <XCircle className="h-4 w-4" />
-                          <span>Décliner</span>
+                          <XCircle className="h-4 w-4 inline mr-1" />
+                          Décliner
                         </button>
                       </div>
                     )}
                   </div>
                 </div>
               );
-            })
-          ) : (
-            <div className="p-12 text-center">
-              <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune mission assignée</h3>
-              <p className="text-gray-600">
-                Vous n'avez actuellement aucune mission assignée. Les nouvelles affectations apparaîtront ici.
-              </p>
-            </div>
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Modal de refus */}
       {selectedAssignment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Décliner la mission
-            </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Décliner la mission</h3>
             <p className="text-gray-600 mb-4">
-              Veuillez indiquer la raison de votre refus :
+              Veuillez indiquer la raison de votre refus (optionnel) :
             </p>
             <textarea
               value={declineReason}
               onChange={(e) => setDeclineReason(e.target.value)}
-              rows={3}
               placeholder="Raison du refus..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              rows={3}
             />
-            <div className="flex items-center justify-end space-x-3 mt-6">
+            <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => {
                   setSelectedAssignment(null);
                   setDeclineReason('');
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={() => handleDeclineAssignment(selectedAssignment, declineReason)}
-                disabled={!declineReason.trim()}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Confirmer le refus
               </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase, Plus, BarChart3, MapPin } from 'lucide-react';
 import { EventCalendar } from '../components/Calendar/EventCalendar';
 import { EventForm } from '../components/Events/EventForm';
 import { useAppStore } from '../store/useAppStore';
@@ -88,9 +88,17 @@ export const AdminDashboard: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {selectedEvent ? 'Modifier l\'événement' : 'Nouvel événement'}
-          </h1>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+              <Calendar className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {selectedEvent ? 'Modifier l\'événement' : 'Nouvel événement'}
+              </h1>
+              <p className="text-gray-600">Créez ou modifiez un événement</p>
+            </div>
+          </div>
         </div>
 
         <EventForm
@@ -113,210 +121,225 @@ export const AdminDashboard: React.FC = () => {
     );
   }
 
+  if (currentPage === 'personnel') {
+    return <PersonnelManagement onNavigate={handleNavigate} />;
+  }
+
+  if (currentPage === 'skills') {
+    return <SkillsManagement onNavigate={handleNavigate} />;
+  }
+
+  if (currentPage === 'assignments') {
+    return <AssignmentsManagement onNavigate={handleNavigate} />;
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Navigation */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="flex space-x-1 p-1">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              currentPage === 'dashboard'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Dashboard
-          </button>
-          <button
-            onClick={() => setCurrentPage('personnel')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              currentPage === 'personnel'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Personnel
-          </button>
-          <button
-            onClick={() => setCurrentPage('skills')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              currentPage === 'skills'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Compétences
-          </button>
-          <button
-            onClick={() => setCurrentPage('assignments')}
-            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              currentPage === 'assignments'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <Briefcase className="h-4 w-4 mr-2" />
-            Affectations
-          </button>
-        </div>
-      </div>
-
-      {/* Contenu des pages */}
-      {currentPage === 'personnel' && (
-        <PersonnelManagement onNavigate={handleNavigate} />
-      )}
-
-      {currentPage === 'skills' && (
-        <SkillsManagement onNavigate={handleNavigate} />
-      )}
-
-      {currentPage === 'assignments' && (
-        <AssignmentsManagement onNavigate={handleNavigate} />
-      )}
-
-      {currentPage === 'dashboard' && (
-        <>
-          {/* Header */}
-          <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header avec navigation */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+              <BarChart3 className="h-7 w-7 text-white" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard Administrateur</h1>
-              <p className="text-gray-600">
-                Vue d'ensemble de vos événements et équipes
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900">Tableau de Bord</h1>
+              <p className="text-gray-600">Vue d'ensemble de votre gestion événementielle</p>
             </div>
-            <button
-              onClick={() => setShowEventForm(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-            >
-              <Calendar className="h-4 w-4" />
-              <span>Nouvel événement</span>
-            </button>
-          </div>
-
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Événements</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Users className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Techniciens</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalTechnicians}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">À venir</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.upcommingEvents}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">En attente</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Contenu principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendrier */}
-        <div className="lg:col-span-2">
-          <EventCalendar
-            onSelectEvent={handleSelectEvent}
-            onSelectSlot={handleCreateFromSlot}
-            height={500}
-          />
-        </div>
-
-        {/* Événements à venir */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Événements à venir</h3>
           </div>
           
-          <div className="p-6">
-            {upcomingEvents.length > 0 ? (
-              <div className="space-y-4">
-                {upcomingEvents.map(event => (
-                  <div
-                    key={event.id}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => handleSelectEvent(event)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{event.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{event.location}</p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {format(new Date(event.startDate), 'dd MMMM yyyy à HH:mm', { locale: fr })}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            event.status === 'confirmed'
-                              ? 'bg-green-100 text-green-800'
-                              : event.status === 'published'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {event.status === 'confirmed' ? 'Confirmé' : 
-                           event.status === 'published' ? 'Publié' : 'Brouillon'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <button
+            onClick={() => setShowEventForm(true)}
+            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nouvel événement</span>
+          </button>
+        </div>
+
+        {/* Statistiques principales */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-blue-600" />
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Aucun événement à venir</p>
-                <button
-                  onClick={() => setShowEventForm(true)}
-                  className="mt-2 text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Créer votre premier événement
-                </button>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.totalEvents}</div>
+                <div className="text-sm text-gray-500">Événements</div>
               </div>
-            )}
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.totalTechnicians}</div>
+                <div className="text-sm text-gray-500">Techniciens</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Clock className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.upcommingEvents}</div>
+                <div className="text-sm text-gray-500">À venir</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</div>
+                <div className="text-sm text-gray-500">En attente</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-        </>
+
+      {/* Navigation rapide */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <button
+          onClick={() => handleNavigate('personnel')}
+          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+              <Users className="h-5 w-5 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-gray-900">Personnel</div>
+              <div className="text-sm text-gray-500">Gérer les équipes</div>
+            </div>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => handleNavigate('skills')}
+          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center group-hover:bg-yellow-200 transition-colors">
+              <Briefcase className="h-5 w-5 text-yellow-600" />
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-gray-900">Compétences</div>
+              <div className="text-sm text-gray-500">Catalogue des skills</div>
+            </div>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => handleNavigate('assignments')}
+          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-gray-900">Affectations</div>
+              <div className="text-sm text-gray-500">Gérer les missions</div>
+            </div>
+          </div>
+        </button>
+        
+        <button
+          onClick={() => setShowEventForm(true)}
+          className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300 hover:border-blue-300 group"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+              <Plus className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-gray-900">Nouvel événement</div>
+              <div className="text-sm text-gray-500">Créer un événement</div>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Événements à venir */}
+      {upcomingEvents.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <span>Événements à venir</span>
+            </h2>
+            <span className="text-sm text-gray-500">{upcomingEvents.length} événement{upcomingEvents.length !== 1 ? 's' : ''}</span>
+          </div>
+          
+          <div className="space-y-3">
+            {upcomingEvents.map((event) => (
+              <div key={event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <span className="flex items-center space-x-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>{format(new Date(event.startDate), 'dd MMM yyyy', { locale: fr })}</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <MapPin className="h-4 w-4" />
+                        <span>{event.location}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    event.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                    event.status === 'published' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {event.status === 'confirmed' ? 'Confirmé' :
+                     event.status === 'published' ? 'Publié' : 'Brouillon'}
+                  </span>
+                  <button
+                    onClick={() => handleSelectEvent(event)}
+                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* Calendrier */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
+            <Calendar className="h-5 w-5 text-blue-600" />
+            <span>Calendrier des événements</span>
+          </h2>
+        </div>
+        
+        <EventCalendar
+          onSelectEvent={handleSelectEvent}
+          onSelectSlot={handleCreateFromSlot}
+          height={600}
+        />
+      </div>
     </div>
   );
 };

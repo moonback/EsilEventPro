@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogOut, Bell, User, Calendar, Users, Menu, X, Settings } from 'lucide-react';
+import { LogOut, Bell, User, Calendar, Users, Menu, X, Settings, Briefcase, Star } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -12,7 +12,8 @@ export const Header: React.FC = () => {
     ...(user?.role === 'admin' ? [
       { name: 'Dashboard', href: '/admin', icon: Calendar },
       { name: 'Personnel', href: '/admin/users', icon: Users },
-      { name: 'Événements', href: '/admin/events', icon: Calendar },
+      { name: 'Compétences', href: '/admin/skills', icon: Star },
+      { name: 'Affectations', href: '/admin/assignments', icon: Briefcase },
     ] : [
       { name: 'Mes Missions', href: '/technician', icon: Calendar },
       { name: 'Profil', href: '/technician/profile', icon: User },

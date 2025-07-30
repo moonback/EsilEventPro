@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Skill } from '../types';
 import toast from 'react-hot-toast';
-import { Plus, Edit, Trash2, User as UserIcon, Mail, Phone, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, User as UserIcon, Mail, Phone, Shield, Users, Search, Filter, Briefcase, Star } from 'lucide-react';
 
 interface PersonnelManagementProps {
   onNavigate: (page: string) => void;
@@ -98,10 +98,10 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
-          phone: user.phone,
+          phone: user.phone || '',
           skills: skillsByUser[user.id] || [],
           createdAt: new Date(user.created_at),
-          updatedAt: new Date(user.updated_at)
+          updatedAt: new Date(user.updated_at),
         })) || [];
 
         setUsers(formattedUsers);
@@ -113,10 +113,10 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role,
-          phone: user.phone,
+          phone: user.phone || '',
           skills: user.user_skills?.map((us: any) => us.skills).filter(Boolean) || [],
           createdAt: new Date(user.created_at),
-          updatedAt: new Date(user.updated_at)
+          updatedAt: new Date(user.updated_at),
         })) || [];
 
         setUsers(formattedUsers);
@@ -147,43 +147,45 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.email || !formData.firstName || !formData.lastName) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
     try {
-      // Créer le profil utilisateur directement
-      const { data: userData, error: profileError } = await supabase
+      // Créer l'utilisateur
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .insert({
+        .insert([{
           email: formData.email,
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone: formData.phone,
-          role: formData.role
-        })
+          role: formData.role,
+        }])
         .select()
         .single();
 
-      if (profileError) throw profileError;
+      if (userError) throw userError;
 
-      // Ajouter les compétences si sélectionnées
-      if (formData.selectedSkills.length > 0 && userData) {
-        // Vérifier s'il y a des doublons dans les compétences sélectionnées
-        const uniqueSkills = [...new Set(formData.selectedSkills)];
-        
-        const skillInserts = uniqueSkills.map(skillId => ({
+      // Ajouter les compétences sélectionnées
+      if (formData.selectedSkills.length > 0) {
+        const userSkillsData = formData.selectedSkills.map(skillId => ({
           user_id: userData.id,
-          skill_id: skillId
+          skill_id: skillId,
         }));
 
-        const { error: skillsError } = await supabase
+        const { error: userSkillsError } = await supabase
           .from('user_skills')
-          .insert(skillInserts);
+          .insert(userSkillsData);
 
-        if (skillsError) throw skillsError;
+        if (userSkillsError) throw userSkillsError;
       }
 
+      toast.success('Utilisateur ajouté avec succès !');
       setShowAddModal(false);
       resetForm();
       fetchUsers();
-      toast.success('Utilisateur ajouté avec succès');
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'utilisateur:', error);
       toast.error('Erreur lors de l\'ajout de l\'utilisateur');
@@ -196,102 +198,50 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
     if (!selectedUser) return;
 
     try {
-      // Mettre à jour le profil utilisateur
-      const { error: profileError } = await supabase
+      // Mettre à jour l'utilisateur
+      const { error: userError } = await supabase
         .from('users')
         .update({
+          email: formData.email,
           first_name: formData.firstName,
           last_name: formData.lastName,
           phone: formData.phone,
-          role: formData.role
+          role: formData.role,
         })
         .eq('id', selectedUser.id);
 
-      if (profileError) throw profileError;
+      if (userError) throw userError;
 
-      // Gérer les compétences de manière plus robuste
+      // Supprimer toutes les compétences actuelles
+      const { error: deleteError } = await supabase
+        .from('user_skills')
+        .delete()
+        .eq('user_id', selectedUser.id);
+
+      if (deleteError) throw deleteError;
+
+      // Ajouter les nouvelles compétences sélectionnées
       if (formData.selectedSkills.length > 0) {
-        // Obtenir les compétences actuelles de l'utilisateur
-        const { data: currentSkills, error: fetchError } = await supabase
+        const userSkillsData = formData.selectedSkills.map(skillId => ({
+          user_id: selectedUser.id,
+          skill_id: skillId,
+        }));
+
+        const { error: userSkillsError } = await supabase
           .from('user_skills')
-          .select('skill_id')
-          .eq('user_id', selectedUser.id);
+          .insert(userSkillsData);
 
-        if (fetchError) throw fetchError;
-
-        const currentSkillIds = currentSkills?.map(s => s.skill_id) || [];
-        const newSkillIds = formData.selectedSkills;
-
-        // Compétences à supprimer (présentes actuellement mais pas dans la nouvelle liste)
-        const skillsToRemove = currentSkillIds.filter(id => !newSkillIds.includes(id));
-        
-        // Compétences à ajouter (nouvelles mais pas présentes actuellement)
-        const skillsToAdd = newSkillIds.filter(id => !currentSkillIds.includes(id));
-
-        // Supprimer les compétences qui ne sont plus sélectionnées
-        if (skillsToRemove.length > 0) {
-          const { error: deleteError } = await supabase
-            .from('user_skills')
-            .delete()
-            .eq('user_id', selectedUser.id)
-            .in('skill_id', skillsToRemove);
-
-          if (deleteError) throw deleteError;
-        }
-
-        // Ajouter les nouvelles compétences seulement si elles n'existent pas déjà
-        if (skillsToAdd.length > 0) {
-          // Vérifier à nouveau les compétences existantes avant d'ajouter
-          const { data: existingSkills, error: checkError } = await supabase
-            .from('user_skills')
-            .select('skill_id')
-            .eq('user_id', selectedUser.id)
-            .in('skill_id', skillsToAdd);
-
-          if (checkError) throw checkError;
-
-          const existingSkillIds = existingSkills?.map(s => s.skill_id) || [];
-          const skillsToActuallyAdd = skillsToAdd.filter(id => !existingSkillIds.includes(id));
-
-          if (skillsToActuallyAdd.length > 0) {
-            const skillInserts = skillsToActuallyAdd.map(skillId => ({
-              user_id: selectedUser.id,
-              skill_id: skillId
-            }));
-
-            const { error: insertError } = await supabase
-              .from('user_skills')
-              .insert(skillInserts);
-
-            if (insertError) throw insertError;
-          }
-        }
-      } else {
-        // Si aucune compétence sélectionnée, supprimer toutes les compétences
-        const { error: deleteError } = await supabase
-          .from('user_skills')
-          .delete()
-          .eq('user_id', selectedUser.id);
-
-        if (deleteError) throw deleteError;
+        if (userSkillsError) throw userSkillsError;
       }
 
+      toast.success('Utilisateur mis à jour avec succès !');
       setShowEditModal(false);
       setSelectedUser(null);
       resetForm();
       fetchUsers();
-      toast.success('Utilisateur modifié avec succès');
     } catch (error) {
-      console.error('Erreur lors de la modification de l\'utilisateur:', error);
-      if (error && typeof error === 'object' && 'code' in error) {
-        if (error.code === '23505') {
-          toast.error('Cette compétence est déjà assignée à cet utilisateur');
-        } else {
-          toast.error('Erreur lors de la modification de l\'utilisateur');
-        }
-      } else {
-        toast.error('Erreur lors de la modification de l\'utilisateur');
-      }
+      console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
+      toast.error('Erreur lors de la mise à jour de l\'utilisateur');
     }
   };
 
@@ -299,28 +249,24 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
 
     try {
-      // Supprimer les affectations
-      await supabase
-        .from('assignments')
-        .delete()
-        .eq('technician_id', userId);
-
-      // Supprimer les compétences
-      await supabase
+      // Supprimer les compétences utilisateur d'abord
+      const { error: userSkillsError } = await supabase
         .from('user_skills')
         .delete()
         .eq('user_id', userId);
 
-      // Supprimer le profil utilisateur
-      const { error } = await supabase
+      if (userSkillsError) throw userSkillsError;
+
+      // Supprimer l'utilisateur
+      const { error: userError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
 
-      if (error) throw error;
+      if (userError) throw userError;
 
+      toast.success('Utilisateur supprimé avec succès !');
       fetchUsers();
-      toast.success('Utilisateur supprimé avec succès');
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'utilisateur:', error);
       toast.error('Erreur lors de la suppression de l\'utilisateur');
@@ -352,165 +298,223 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
-    
     return matchesSearch && matchesRole;
   });
+
+  const stats = {
+    total: users.length,
+    admins: users.filter(u => u.role === 'admin').length,
+    technicians: users.filter(u => u.role === 'technician').length,
+    withSkills: users.filter(u => u.skills.length > 0).length,
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion du Personnel</h1>
-          <p className="text-gray-600">Gérez les utilisateurs et leurs compétences</p>
+    <div className="space-y-8">
+      {/* Header avec statistiques */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+              <Users className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Gestion du Personnel</h1>
+              <p className="text-gray-600">Gérez vos équipes et leurs compétences</p>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Ajouter un utilisateur</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
-        >
-          <Plus size={20} />
-          Ajouter un utilisateur
-        </button>
+
+        {/* Statistiques */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-sm text-gray-500">Total</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Shield className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.admins}</div>
+                <div className="text-sm text-gray-500">Administrateurs</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Briefcase className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.technicians}</div>
+                <div className="text-sm text-gray-500">Techniciens</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Star className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{stats.withSkills}</div>
+                <div className="text-sm text-gray-500">Avec compétences</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Filtres */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Rechercher un utilisateur..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Filtres et recherche */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher un utilisateur..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Filter className="h-5 w-5 text-gray-400" />
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value as any)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">Tous les rôles</option>
+                <option value="admin">Administrateurs</option>
+                <option value="technician">Techniciens</option>
+              </select>
+            </div>
           </div>
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Tous les rôles</option>
-            <option value="admin">Administrateurs</option>
-            <option value="technician">Techniciens</option>
-          </select>
+          
+          <div className="text-sm text-gray-500">
+            {filteredUsers.length} utilisateur{filteredUsers.length !== 1 ? 's' : ''} trouvé{filteredUsers.length !== 1 ? 's' : ''}
+          </div>
         </div>
       </div>
 
       {/* Liste des utilisateurs */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Utilisateur
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rôle
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Compétences
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <UserIcon className="h-6 w-6 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          ID: {user.id.slice(0, 8)}...
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-900">{user.email}</span>
-                    </div>
-                    {user.phone && (
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Phone className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">{user.phone}</span>
-                      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredUsers.map((user) => (
+          <div key={user.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  user.role === 'admin' 
+                    ? 'bg-purple-100 text-purple-600' 
+                    : 'bg-green-100 text-green-600'
+                }`}>
+                  <UserIcon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">{user.email}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => openEditModal(user)}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteUser(user.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Mail className="h-4 w-4" />
+                <span>{user.email}</span>
+              </div>
+              
+              {user.phone && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <Phone className="h-4 w-4" />
+                  <span>{user.phone}</span>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-2">
+                <Shield className={`h-4 w-4 ${
+                  user.role === 'admin' ? 'text-purple-600' : 'text-green-600'
+                }`} />
+                <span className={`text-sm font-medium ${
+                  user.role === 'admin' ? 'text-purple-600' : 'text-green-600'
+                }`}>
+                  {user.role === 'admin' ? 'Administrateur' : 'Technicien'}
+                </span>
+              </div>
+
+              {user.skills.length > 0 && (
+                <div className="pt-3 border-t border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Compétences ({user.skills.length})</p>
+                  <div className="flex flex-wrap gap-1">
+                    {user.skills.slice(0, 3).map((skill) => (
+                      <span
+                        key={skill.id}
+                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                      >
+                        {skill.name}
+                      </span>
+                    ))}
+                    {user.skills.length > 3 && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        +{user.skills.length - 3}
+                      </span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.role === 'admin' 
-                        ? 'bg-red-100 text-red-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      <Shield className="h-3 w-3 mr-1" />
-                      {user.role === 'admin' ? 'Administrateur' : 'Technicien'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {user.skills.map((skill) => (
-                        <span
-                          key={skill.id}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          {skill.name} ({skill.level})
-                        </span>
-                      ))}
-                      {user.skills.length === 0 && (
-                        <span className="text-sm text-gray-500">Aucune compétence</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Modal d'ajout */}
