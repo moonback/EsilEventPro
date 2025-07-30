@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import { Assignment, Event, User } from '../types';
 import { Plus, Edit, Trash2, Calendar, User as UserIcon, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
+import toast from 'react-hot-toast';
 
 interface AssignmentsManagementProps {
   onNavigate: (page: string) => void;
@@ -13,10 +14,7 @@ interface AssignmentWithDetails extends Assignment {
 }
 
 const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigate }) => {
-  const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [technicians, setTechnicians] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { assignments, events, users, addAssignment, updateAssignment, deleteAssignment } = useAppStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<AssignmentWithDetails | null>(null);
@@ -31,143 +29,26 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     declineReason: ''
   });
 
-  useEffect(() => {
-    fetchAssignments();
-    fetchEvents();
-    fetchTechnicians();
-  }, []);
-
-  const fetchAssignments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .select(`
-          *,
-          events (
-            id,
-            title,
-            start_date,
-            end_date,
-            location,
-            status
-          ),
-          users!assignments_technician_id_fkey (
-            id,
-            first_name,
-            last_name,
-            email,
-            role
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedAssignments: AssignmentWithDetails[] = data?.map((assignment: any) => ({
-        id: assignment.id,
-        eventId: assignment.event_id,
-        technicianId: assignment.technician_id,
-        status: assignment.status,
-        responseDate: assignment.response_date ? new Date(assignment.response_date) : undefined,
-        declineReason: assignment.decline_reason,
-        createdAt: new Date(assignment.created_at),
-        event: {
-          id: assignment.events.id,
-          title: assignment.events.title,
-          description: '',
-          startDate: new Date(assignment.events.start_date),
-          endDate: new Date(assignment.events.end_date),
-          location: assignment.events.location,
-          type: { id: '', name: '', color: '', defaultDuration: 0 },
-          requiredTechnicians: [],
-          assignments: [],
-          status: assignment.events.status,
-          createdBy: '',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        technician: {
-          id: assignment.users.id,
-          email: assignment.users.email,
-          firstName: assignment.users.first_name,
-          lastName: assignment.users.last_name,
-          role: assignment.users.role,
-          skills: [],
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      })) || [];
-
-      setAssignments(formattedAssignments);
-    } catch (error) {
-      console.error('Erreur lors du chargement des affectations:', error);
-    } finally {
-      setLoading(false);
+  // Créer les affectations avec détails
+  const assignmentsWithDetails: AssignmentWithDetails[] = assignments.map(assignment => {
+    const event = events.find(e => e.id === assignment.eventId);
+    const technician = users.find(u => u.id === assignment.technicianId);
+    
+    if (!event || !technician) {
+      console.warn(`Affectation ${assignment.id} a des références manquantes:`, { eventId: assignment.eventId, technicianId: assignment.technicianId });
+      return null;
     }
-  };
 
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('start_date', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedEvents: Event[] = data?.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        startDate: new Date(event.start_date),
-        endDate: new Date(event.end_date),
-        location: event.location,
-        type: { id: '', name: '', color: '', defaultDuration: 0 },
-        requiredTechnicians: [],
-        assignments: [],
-        status: event.status,
-        createdBy: event.created_by,
-        createdAt: new Date(event.created_at),
-        updatedAt: new Date(event.updated_at)
-      })) || [];
-
-      setEvents(formattedEvents);
-    } catch (error) {
-      console.error('Erreur lors du chargement des événements:', error);
-    }
-  };
-
-  const fetchTechnicians = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'technician')
-        .order('first_name');
-
-      if (error) throw error;
-
-      const formattedTechnicians: User[] = data?.map((user: any) => ({
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        phone: user.phone,
-        skills: [],
-        createdAt: new Date(user.created_at),
-        updatedAt: new Date(user.updated_at)
-      })) || [];
-
-      setTechnicians(formattedTechnicians);
-    } catch (error) {
-      console.error('Erreur lors du chargement des techniciens:', error);
-    }
-  };
+    return {
+      ...assignment,
+      event,
+      technician
+    };
+  }).filter(Boolean) as AssignmentWithDetails[];
 
   // Fonction pour obtenir les techniciens disponibles pour un événement
   const getAvailableTechnicians = (eventId: string) => {
-    if (!eventId || !technicians.length) return technicians;
+    if (!eventId || !users.length) return users.filter(u => u.role === 'technician');
     
     // Obtenir les techniciens déjà assignés à cet événement
     const assignedTechnicianIds = assignments
@@ -175,8 +56,8 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
       .map(assignment => assignment.technicianId);
     
     // Filtrer les techniciens non assignés
-    return technicians.filter(technician => 
-      !assignedTechnicianIds.includes(technician.id)
+    return users.filter(user => 
+      user.role === 'technician' && !assignedTechnicianIds.includes(user.id)
     );
   };
 
@@ -184,7 +65,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     e.preventDefault();
     
     try {
-      // Vérifier si l'affectation existe déjà en utilisant les données locales
+      // Vérifier si l'affectation existe déjà
       const existingAssignment = assignments.find(
         assignment => 
           assignment.eventId === formData.eventId && 
@@ -192,32 +73,24 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
       );
 
       if (existingAssignment) {
-        alert('Ce technicien est déjà assigné à cet événement.');
+        toast.error('Ce technicien est déjà assigné à cet événement.');
         return;
       }
 
-      const { error } = await supabase
-        .from('assignments')
-        .insert({
-          event_id: formData.eventId,
-          technician_id: formData.technicianId,
-          status: formData.status,
-          decline_reason: formData.declineReason || null
-        });
-
-      if (error) throw error;
+      await addAssignment({
+        eventId: formData.eventId,
+        technicianId: formData.technicianId,
+        status: formData.status,
+        declineReason: formData.declineReason || undefined,
+        responseDate: formData.status !== 'pending' ? new Date() : undefined,
+      });
 
       setShowAddModal(false);
       resetForm();
-      fetchAssignments();
+      toast.success('Affectation créée avec succès !');
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout de l\'affectation:', error);
-      
-      if (error.code === '23505') {
-        alert('Ce technicien est déjà assigné à cet événement.');
-      } else {
-        alert(`Erreur lors de l'ajout de l'affectation: ${error.message}`);
-      }
+      toast.error(`Erreur lors de l'ajout de l'affectation: ${error.message}`);
     }
   };
 
@@ -227,23 +100,19 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     if (!selectedAssignment) return;
 
     try {
-      const { error } = await supabase
-        .from('assignments')
-        .update({
-          status: formData.status,
-          decline_reason: formData.declineReason || null,
-          response_date: formData.status !== 'pending' ? new Date().toISOString() : null
-        })
-        .eq('id', selectedAssignment.id);
-
-      if (error) throw error;
+      await updateAssignment(selectedAssignment.id, {
+        status: formData.status,
+        declineReason: formData.declineReason || undefined,
+        responseDate: formData.status !== 'pending' ? new Date() : undefined,
+      });
 
       setShowEditModal(false);
       setSelectedAssignment(null);
       resetForm();
-      fetchAssignments();
+      toast.success('Affectation mise à jour avec succès !');
     } catch (error) {
       console.error('Erreur lors de la modification de l\'affectation:', error);
+      toast.error('Erreur lors de la modification de l\'affectation');
     }
   };
 
@@ -251,16 +120,59 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette affectation ?')) return;
 
     try {
-      const { error } = await supabase
-        .from('assignments')
-        .delete()
-        .eq('id', assignmentId);
-
-      if (error) throw error;
-
-      fetchAssignments();
+      await deleteAssignment(assignmentId);
+      toast.success('Affectation supprimée avec succès !');
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'affectation:', error);
+      toast.error('Erreur lors de la suppression de l\'affectation');
+    }
+  };
+
+  // Fonction pour créer des affectations de test
+  const createTestAssignments = async () => {
+    try {
+      const technicians = users.filter(u => u.role === 'technician');
+      const availableEvents = events.filter(e => e.status !== 'draft');
+      
+      if (technicians.length === 0) {
+        toast.error('Aucun technicien disponible pour créer des affectations de test');
+        return;
+      }
+      
+      if (availableEvents.length === 0) {
+        toast.error('Aucun événement disponible pour créer des affectations de test');
+        return;
+      }
+
+      // Créer quelques affectations de test
+      const testAssignments = [];
+      for (let i = 0; i < Math.min(3, availableEvents.length); i++) {
+        const event = availableEvents[i];
+        const technician = technicians[i % technicians.length];
+        
+        // Vérifier si l'affectation existe déjà
+        const existingAssignment = assignments.find(
+          a => a.eventId === event.id && a.technicianId === technician.id
+        );
+        
+        if (!existingAssignment) {
+          testAssignments.push({
+            eventId: event.id,
+            technicianId: technician.id,
+            status: 'pending' as const,
+          });
+        }
+      }
+
+      // Créer les affectations
+      for (const assignmentData of testAssignments) {
+        await addAssignment(assignmentData);
+      }
+
+      toast.success(`${testAssignments.length} affectations de test créées avec succès !`);
+    } catch (error) {
+      console.error('Erreur lors de la création des affectations de test:', error);
+      toast.error('Erreur lors de la création des affectations de test');
     }
   };
 
@@ -320,7 +232,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     }
   };
 
-  const filteredAssignments = assignments.filter(assignment => {
+  const filteredAssignments = assignmentsWithDetails.filter(assignment => {
     const matchesSearch = 
       assignment.event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       `${assignment.technician.firstName} ${assignment.technician.lastName}`.toLowerCase().includes(searchTerm.toLowerCase());
@@ -329,14 +241,6 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     
     return matchesSearch && matchesStatus;
   });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6">
@@ -388,7 +292,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{assignments.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{assignmentsWithDetails.length}</p>
             </div>
           </div>
         </div>
@@ -400,7 +304,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">En attente</p>
               <p className="text-2xl font-bold text-gray-900">
-                {assignments.filter(a => a.status === 'pending').length}
+                {assignmentsWithDetails.filter(a => a.status === 'pending').length}
               </p>
             </div>
           </div>
@@ -413,7 +317,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Acceptées</p>
               <p className="text-2xl font-bold text-gray-900">
-                {assignments.filter(a => a.status === 'accepted').length}
+                {assignmentsWithDetails.filter(a => a.status === 'accepted').length}
               </p>
             </div>
           </div>
@@ -426,7 +330,7 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Refusées</p>
               <p className="text-2xl font-bold text-gray-900">
-                {assignments.filter(a => a.status === 'declined').length}
+                {assignmentsWithDetails.filter(a => a.status === 'declined').length}
               </p>
             </div>
           </div>
@@ -435,9 +339,36 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
 
       {/* Liste des affectations */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        {assignmentsWithDetails.length === 0 && (
+          <div className="p-8 text-center">
+            <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune affectation trouvée</h3>
+            <p className="text-gray-600 mb-6">
+              Créez votre première affectation ou générez des affectations de test pour commencer
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Créer une affectation
+              </button>
+              <button
+                onClick={createTestAssignments}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+              >
+                <Plus size={16} />
+                Créer des affectations de test
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {assignmentsWithDetails.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Événement
@@ -457,72 +388,92 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAssignments.map((assignment) => (
-                <tr key={assignment.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Calendar className="h-6 w-6 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {assignment.event.title}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {assignment.event.location} • {assignment.event.startDate.toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                          <UserIcon className="h-6 w-6 text-green-600" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {assignment.technician.firstName} {assignment.technician.lastName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {assignment.technician.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
-                      {getStatusIcon(assignment.status)}
-                      <span className="ml-1">{getStatusText(assignment.status)}</span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {assignment.responseDate ? assignment.responseDate.toLocaleDateString() : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => openEditModal(assignment)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAssignment(assignment.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+              {filteredAssignments.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <Calendar className="h-12 w-12 text-gray-300 mb-4" />
+                      <p className="text-lg font-medium text-gray-900 mb-2">
+                        Aucune affectation trouvée
+                      </p>
+                      <p className="text-gray-600">
+                        {assignmentsWithDetails.length === 0 
+                          ? 'Créez votre première affectation pour commencer'
+                          : 'Aucune affectation ne correspond à vos critères de recherche'
+                        }
+                      </p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredAssignments.map((assignment) => (
+                  <tr key={assignment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Calendar className="h-6 w-6 text-blue-600" />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {assignment.event.title}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {assignment.event.location} • {assignment.event.startDate.toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <UserIcon className="h-6 w-6 text-green-600" />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {assignment.technician.firstName} {assignment.technician.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {assignment.technician.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
+                        {getStatusIcon(assignment.status)}
+                        <span className="ml-1">{getStatusText(assignment.status)}</span>
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {assignment.responseDate ? assignment.responseDate.toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openEditModal(assignment)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAssignment(assignment.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Modal d'ajout */}
