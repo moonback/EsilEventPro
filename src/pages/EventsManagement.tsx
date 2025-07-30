@@ -42,7 +42,8 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
   // Fermer le menu de statut quand on clique ailleurs
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (statusMenuOpen && !(event.target as Element).closest('.status-menu')) {
+      const target = event.target as Element;
+      if (statusMenuOpen && !target.closest('.status-dropdown')) {
         setStatusMenuOpen(null);
       }
     };
@@ -525,28 +526,28 @@ const EventsManagement: React.FC<EventsManagementProps> = ({ onNavigate }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="relative">
+                        <div className="relative inline-block text-left status-dropdown">
                           <button
                             onClick={() => setStatusMenuOpen(statusMenuOpen === event.id ? null : event.id)}
-                            className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(event.status)} hover:opacity-80 transition-opacity status-menu`}
+                            className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(event.status)} hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer shadow-sm hover:shadow-md`}
                           >
                             {getStatusText(event.status)}
-                            <ChevronDown className="h-3 w-3 ml-1" />
+                            <ChevronDown className={`h-3 w-3 ml-1 transition-transform duration-200 ${statusMenuOpen === event.id ? 'rotate-180' : ''}`} />
                           </button>
                           
                           {statusMenuOpen === event.id && (
-                            <div className="absolute z-10 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 py-1">
+                            <div className="absolute right-0 z-50 mt-2 w-40 bg-white rounded-md shadow-lg border border-gray-200 py-1 ring-1 ring-black ring-opacity-5 transform opacity-100 scale-100 transition-all duration-200 ease-out">
                               {eventStatuses.map((status) => (
                                 <button
                                   key={status.value}
                                   onClick={() => handleUpdateEventStatus(event.id, status.value)}
-                                  className={`w-full text-left px-3 py-1 text-xs hover:bg-gray-100 ${
+                                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none transition-colors duration-150 ${
                                     event.status === status.value ? 'bg-gray-100 font-medium' : ''
                                   }`}
                                 >
                                   <div className="flex items-center">
                                     <div 
-                                      className="h-2 w-2 rounded-full mr-2"
+                                      className="h-3 w-3 rounded-full mr-3"
                                       style={{ backgroundColor: status.color }}
                                     />
                                     {status.label}
