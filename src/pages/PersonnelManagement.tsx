@@ -35,12 +35,12 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
 
   const fetchUsers = async () => {
     try {
+      // Méthode alternative : récupérer les utilisateurs avec leurs compétences en une seule requête
       const { data, error } = await supabase
         .from('users')
         .select(`
           *,
-          user_skills (
-            skill_id,
+          user_skills!inner (
             skills (
               id,
               name,
@@ -51,26 +51,76 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur avec la requête join:', error);
+        
+        // Fallback : méthode séparée si la jointure ne fonctionne pas
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      const formattedUsers: User[] = data?.map((user: any) => ({
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        phone: user.phone,
-        skills: user.user_skills?.map((us: any) => ({
-          id: us.skills.id,
-          name: us.skills.name,
-          category: us.skills.category,
-          level: us.skills.level
-        })) || [],
-        createdAt: new Date(user.created_at),
-        updatedAt: new Date(user.updated_at)
-      })) || [];
+        if (usersError) throw usersError;
 
-      setUsers(formattedUsers);
+        const { data: userSkillsData, error: userSkillsError } = await supabase
+          .from('user_skills')
+          .select(`
+            user_id,
+            skills (
+              id,
+              name,
+              category,
+              level
+            )
+          `);
+
+        if (userSkillsError) throw userSkillsError;
+
+        // Organiser les compétences par utilisateur
+        const skillsByUser: { [key: string]: any[] } = {};
+        userSkillsData?.forEach((item: any) => {
+          if (!skillsByUser[item.user_id]) {
+            skillsByUser[item.user_id] = [];
+          }
+          if (item.skills) {
+            skillsByUser[item.user_id].push(item.skills);
+          }
+        });
+
+        // Debug: afficher les données récupérées
+        console.log('Users data:', usersData);
+        console.log('User skills data:', userSkillsData);
+        console.log('Skills by user:', skillsByUser);
+
+        const formattedUsers: User[] = usersData?.map((user: any) => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          phone: user.phone,
+          skills: skillsByUser[user.id] || [],
+          createdAt: new Date(user.created_at),
+          updatedAt: new Date(user.updated_at)
+        })) || [];
+
+        setUsers(formattedUsers);
+      } else {
+        // Si la jointure fonctionne
+        const formattedUsers: User[] = data?.map((user: any) => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+          phone: user.phone,
+          skills: user.user_skills?.map((us: any) => us.skills).filter(Boolean) || [],
+          createdAt: new Date(user.created_at),
+          updatedAt: new Date(user.updated_at)
+        })) || [];
+
+        setUsers(formattedUsers);
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
       toast.error('Erreur lors du chargement des utilisateurs');

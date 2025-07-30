@@ -130,6 +130,11 @@ CREATE POLICY "Admins can view all assignments" ON assignments FOR SELECT USING 
 CREATE POLICY "Admins can manage assignments" ON assignments FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
 CREATE POLICY "Technicians can update own assignments" ON assignments FOR UPDATE USING (auth.uid() = technician_id);
 
+-- Politiques pour les compétences utilisateur
+CREATE POLICY "Everyone can view user skills" ON user_skills FOR SELECT USING (true);
+CREATE POLICY "Admins can manage user skills" ON user_skills FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+CREATE POLICY "Users can manage own skills" ON user_skills FOR ALL USING (auth.uid() = user_id);
+
 -- Insertion des données par défaut
 INSERT INTO skills (id, name, category, level) VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'Mixage Audio', 'sound', 'expert'),
