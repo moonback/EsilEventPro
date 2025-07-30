@@ -165,10 +165,42 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
     }
   };
 
+  // Fonction pour obtenir les techniciens disponibles pour un événement
+  const getAvailableTechnicians = (eventId: string) => {
+    if (!eventId) return technicians;
+    
+    // Obtenir les techniciens déjà assignés à cet événement
+    const assignedTechnicianIds = assignments
+      .filter(assignment => assignment.eventId === eventId)
+      .map(assignment => assignment.technicianId);
+    
+    // Filtrer les techniciens non assignés
+    return technicians.filter(technician => 
+      !assignedTechnicianIds.includes(technician.id)
+    );
+  };
+
   const handleAddAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
+      // Vérifier si l'affectation existe déjà
+      const { data: existingAssignment, error: checkError } = await supabase
+        .from('assignments')
+        .select('id')
+        .eq('event_id', formData.eventId)
+        .eq('technician_id', formData.technicianId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingAssignment) {
+        alert('Ce technicien est déjà assigné à cet événement.');
+        return;
+      }
+
       const { error } = await supabase
         .from('assignments')
         .insert({
@@ -183,8 +215,14 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
       setShowAddModal(false);
       resetForm();
       fetchAssignments();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de l\'ajout de l\'affectation:', error);
+      
+      if (error.code === '23505') {
+        alert('Ce technicien est déjà assigné à cet événement.');
+      } else {
+        alert(`Erreur lors de l'ajout de l'affectation: ${error.message}`);
+      }
     }
   };
 
@@ -504,7 +542,14 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
                   <select
                     required
                     value={formData.eventId}
-                    onChange={(e) => setFormData({...formData, eventId: e.target.value})}
+                    onChange={(e) => {
+                      const newEventId = e.target.value;
+                      setFormData({
+                        ...formData, 
+                        eventId: newEventId,
+                        technicianId: '' // Réinitialiser le technicien quand l'événement change
+                      });
+                    }}
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Sélectionner un événement</option>
@@ -522,14 +567,24 @@ const AssignmentsManagement: React.FC<AssignmentsManagementProps> = ({ onNavigat
                     value={formData.technicianId}
                     onChange={(e) => setFormData({...formData, technicianId: e.target.value})}
                     className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={getAvailableTechnicians(formData.eventId).length === 0}
                   >
-                    <option value="">Sélectionner un technicien</option>
-                    {technicians.map((technician) => (
+                    <option value="">
+                      {getAvailableTechnicians(formData.eventId).length === 0 
+                        ? "Aucun technicien disponible" 
+                        : "Sélectionner un technicien"}
+                    </option>
+                    {getAvailableTechnicians(formData.eventId).map((technician) => (
                       <option key={technician.id} value={technician.id}>
                         {technician.firstName} {technician.lastName}
                       </option>
                     ))}
                   </select>
+                  {getAvailableTechnicians(formData.eventId).length === 0 && formData.eventId && (
+                    <p className="mt-1 text-sm text-orange-600">
+                      Tous les techniciens sont déjà assignés à cet événement.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Statut initial</label>
