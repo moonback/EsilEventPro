@@ -62,7 +62,6 @@ export const AdminDashboard: React.FC = () => {
 
     updateEvent(selectedEvent.id, {
       ...data,
-      type: eventType,
     });
 
     setSelectedEvent(null);
