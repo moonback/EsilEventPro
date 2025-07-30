@@ -18,6 +18,7 @@ export const Header: React.FC = () => {
   const navigation = [
     ...(user?.role === 'admin' ? [
       { name: 'Dashboard', href: '/admin', icon: Home },
+      { name: 'Événements', href: '/admin/events', icon: Calendar },
       { name: 'Personnel', href: '/admin/users', icon: Users },
       { name: 'Compétences', href: '/admin/skills', icon: Star },
       { name: 'Affectations', href: '/admin/assignments', icon: Briefcase },

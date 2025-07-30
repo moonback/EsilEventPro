@@ -103,7 +103,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   addAssignment: async (assignmentData) => {
     try {
       const newAssignment = await assignmentService.create(assignmentData);
-      set(state => ({ assignments: [...state.assignments, newAssignment] }));
+      set(state => ({ 
+        assignments: [...state.assignments, newAssignment],
+        events: state.events.map(event => 
+          event.id === assignmentData.eventId 
+            ? { ...event, assignments: [...event.assignments, newAssignment] }
+            : event
+        )
+      }));
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'affectation:', error);
       throw error;
@@ -116,7 +123,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set(state => ({
         assignments: state.assignments.map(assignment =>
           assignment.id === id ? updatedAssignment : assignment
-        )
+        ),
+        events: state.events.map(event => ({
+          ...event,
+          assignments: event.assignments.map(assignment =>
+            assignment.id === id ? updatedAssignment : assignment
+          )
+        }))
       }));
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'affectation:', error);
@@ -127,7 +140,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   deleteAssignment: async (id) => {
     try {
       await assignmentService.delete(id);
-      set(state => ({ assignments: state.assignments.filter(assignment => assignment.id !== id) }));
+      set(state => ({ 
+        assignments: state.assignments.filter(assignment => assignment.id !== id),
+        events: state.events.map(event => ({
+          ...event,
+          assignments: event.assignments.filter(assignment => assignment.id !== id)
+        }))
+      }));
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'affectation:', error);
       throw error;
@@ -160,9 +179,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
       }
 
+      // Lier les affectations aux événements
+      const eventsWithAssignments = events.map(event => ({
+        ...event,
+        assignments: assignments.filter(assignment => assignment.eventId === event.id)
+      }));
+
       set({
         users,
-        events,
+        events: eventsWithAssignments,
         assignments,
         skills: skills.length > 0 ? skills : defaultSkills,
         eventTypes: eventTypes.length > 0 ? eventTypes : defaultEventTypes,
