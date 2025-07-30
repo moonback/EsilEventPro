@@ -1,23 +1,10 @@
 import React, { useMemo } from 'react';
-import { Calendar, dateFnsLocalizer, View, Views } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Event, CalendarEvent } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Trash2 } from 'lucide-react';
-
-const locales = {
-  fr: fr,
-};
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+import { CalendarStats } from './CalendarStats';
+import { CalendarContainer } from './CalendarContainer';
+import { CalendarLegend } from './CalendarLegend';
+import { CalendarTips } from './CalendarTips';
 
 interface EventCalendarProps {
   onSelectEvent?: (event: Event) => void;
@@ -44,60 +31,6 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
     }));
   }, [events]);
 
-  const eventStyleGetter = (event: CalendarEvent) => {
-    const { resource } = event;
-    let backgroundColor = '#3B82F6'; // Bleu par défaut
-    let borderColor = '#2563EB';
-    let textColor = '#FFFFFF';
-    
-    // Couleurs selon le statut avec dégradés
-    switch (resource.status) {
-      case 'draft':
-        backgroundColor = 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)';
-        borderColor = '#6B7280';
-        break;
-      case 'published':
-        backgroundColor = 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)';
-        borderColor = '#D97706';
-        break;
-      case 'confirmed':
-        backgroundColor = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-        borderColor = '#059669';
-        break;
-      case 'completed':
-        backgroundColor = 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)';
-        borderColor = '#4B5563';
-        break;
-      case 'cancelled':
-        backgroundColor = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
-        borderColor = '#DC2626';
-        break;
-      default:
-        backgroundColor = `linear-gradient(135deg, ${resource.type.color} 0%, ${resource.type.color}dd 100%)`;
-        borderColor = resource.type.color;
-    }
-
-    return {
-      style: {
-        background: backgroundColor,
-        borderRadius: '6px',
-        opacity: 0.95,
-        color: textColor,
-        border: `1px solid ${borderColor}`,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        fontSize: '11px',
-        fontWeight: '500',
-        padding: '4px 6px',
-        transition: 'all 0.2s ease-in-out',
-        cursor: 'pointer',
-        minHeight: '32px',
-        lineHeight: '1.3',
-        overflow: 'hidden',
-      },
-      className: 'group hover:opacity-100 event-item',
-    };
-  };
-
   const handleSelectEvent = (calendarEvent: CalendarEvent) => {
     if (onSelectEvent) {
       onSelectEvent(calendarEvent.resource);
@@ -117,212 +50,25 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
     }
   };
 
-  // Composant personnalisé pour les événements avec heures et emplacement
-  const EventComponent = ({ event }: { event: CalendarEvent }) => {
-    const startTime = format(event.start, 'HH:mm');
-    const endTime = format(event.end, 'HH:mm');
-    const isAllDay = event.start.getHours() === 0 && event.start.getMinutes() === 0 && 
-                     event.end.getHours() === 0 && event.end.getMinutes() === 0;
-    const { resource } = event;
-    
-    return (
-      <div className="event-item">
-        {/* Titre de l'événement */}
-        <div className="event-title truncate">
-          {event.title}
-        </div>
-        
-        {/* Heures */}
-        {!isAllDay && (
-          <div className="event-time flex items-center">
-            <Clock className="h-3 w-3 mr-1" />
-            {startTime} - {endTime}
-          </div>
-        )}
-        
-        {/* Emplacement */}
-        {resource.location && (
-          <div className="event-location flex items-center">
-            <MapPin className="h-3 w-3 mr-1" />
-            <span className="truncate">{resource.location}</span>
-          </div>
-        )}
-        
-        {/* Statut */}
-        <div className="event-status">
-          <span className={`inline-block px-1 py-0.5 rounded text-xs font-medium ${
-            resource.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-            resource.status === 'published' ? 'bg-blue-100 text-blue-800' :
-            resource.status === 'draft' ? 'bg-gray-100 text-gray-800' :
-            resource.status === 'completed' ? 'bg-purple-100 text-purple-800' :
-            'bg-red-100 text-red-800'
-          }`}>
-            {resource.status === 'confirmed' ? 'Confirmé' :
-             resource.status === 'published' ? 'Publié' :
-             resource.status === 'draft' ? 'Brouillon' :
-             resource.status === 'completed' ? 'Terminé' :
-             'Annulé'}
-          </span>
-        </div>
-        
-        {/* Bouton de suppression */}
-        {onDeleteEvent && (
-          <button
-            onClick={(e) => handleDeleteEvent(event, e)}
-            className="absolute top-1 right-1 p-0.5 text-white hover:text-red-200 hover:bg-red-600/20 rounded transition-colors opacity-0 group-hover:opacity-100"
-            title="Supprimer l'événement"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-400';
-      case 'published': return 'bg-yellow-400';
-      case 'confirmed': return 'bg-green-400';
-      case 'completed': return 'bg-gray-600';
-      case 'cancelled': return 'bg-red-400';
-      default: return 'bg-blue-400';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'draft': return 'Brouillon';
-      case 'published': return 'Publié';
-      case 'confirmed': return 'Confirmé';
-      case 'completed': return 'Terminé';
-      case 'cancelled': return 'Annulé';
-      default: return status;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Statistiques rapides */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-        <div className="grid grid-cols-4 gap-4 text-center">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {events.length}
-            </div>
-            <div className="text-xs text-gray-500">Total</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {events.filter(e => e.status === 'confirmed').length}
-            </div>
-            <div className="text-xs text-gray-500">Confirmés</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {events.filter(e => e.status === 'published').length}
-            </div>
-            <div className="text-xs text-gray-500">En attente</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-600">
-              {events.filter(e => e.status === 'draft').length}
-            </div>
-            <div className="text-xs text-gray-500">Brouillons</div>
-          </div>
-        </div>
-      </div>
+      <CalendarStats events={events} />
 
       {/* Calendrier */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <div style={{ height }}>
-          <Calendar
-            localizer={localizer}
-            events={calendarEvents}
-            startAccessor="start"
-            endAccessor="end"
-            culture="fr"
-            onSelectEvent={handleSelectEvent}
-            onSelectSlot={handleSelectSlot}
-            selectable="ignoreEvents"
-            eventPropGetter={eventStyleGetter}
-            components={{
-              event: EventComponent,
-            }}
-            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-            defaultView={Views.MONTH}
-            messages={{
-              next: 'Suivant',
-              previous: 'Précédent',
-              today: "Aujourd'hui",
-              month: 'Mois',
-              week: 'Semaine',
-              day: 'Jour',
-              agenda: 'Agenda',
-              date: 'Date',
-              time: 'Heure',
-              event: 'Événement',
-              noEventsInRange: 'Aucun événement dans cette période',
-              showMore: (total) => `+ ${total} de plus`,
-            }}
-            formats={{
-              monthHeaderFormat: 'MMMM yyyy',
-              dayHeaderFormat: 'EEEE dd MMMM',
-              dayRangeHeaderFormat: ({ start, end }) =>
-                `${format(start, 'dd MMM', { locale: fr })} - ${format(end, 'dd MMM yyyy', { locale: fr })}`,
-              timeGutterFormat: 'HH:mm',
-              eventTimeRangeFormat: ({ start, end }) =>
-                `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`,
-              dayFormat: 'dd MMM',
-              selectRangeFormat: ({ start, end }) =>
-                `${format(start, 'dd/MM/yyyy HH:mm')} - ${format(end, 'dd/MM/yyyy HH:mm')}`,
-            }}
-            className="event-calendar"
-            popup
-            step={15}
-            timeslots={4}
-            min={new Date(0, 0, 0, 6, 0, 0)} // Commence à 6h
-            max={new Date(0, 0, 0, 22, 0, 0)} // Termine à 22h
-            dayLayoutAlgorithm="no-overlap"
-            scrollToTime={new Date(0, 0, 0, 8, 0, 0)} // Scroll vers 8h par défaut
-            length={30} // Durée par défaut des créneaux (30 minutes)
-            rtl={false}
-            showMultiDayTimes={true}
-          />
-        </div>
-      </div>
+      <CalendarContainer
+        events={calendarEvents}
+        onSelectEvent={handleSelectEvent}
+        onSelectSlot={handleSelectSlot}
+        onDeleteEvent={handleDeleteEvent}
+        height={height}
+      />
       
       {/* Légende améliorée */}
-      <div className="mt-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-4 border border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-          <MapPin className="h-4 w-4 mr-2 text-blue-600" />
-          Légende des statuts
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {['draft', 'published', 'confirmed', 'completed', 'cancelled'].map((status) => (
-            <div key={status} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/50 transition-colors">
-              <div className={`w-4 h-4 rounded-full ${getStatusColor(status)} shadow-sm`}></div>
-              <span className="text-sm font-medium text-gray-700">{getStatusText(status)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <CalendarLegend />
 
       {/* Conseils d'utilisation */}
-      <div className="mt-4 bg-blue-50 rounded-xl p-4 border border-blue-200">
-        <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Users className="h-4 w-4 text-white" />
-          </div>
-          <div>
-            <h5 className="text-sm font-semibold text-blue-800 mb-1">Conseils d'utilisation</h5>
-            <p className="text-xs text-blue-700">
-              • Cliquez sur un événement pour voir les détails • Double-cliquez sur un créneau pour créer un nouvel événement • 
-              Utilisez les boutons de navigation pour changer de vue • Les heures sont affichées dans chaque événement
-            </p>
-          </div>
-        </div>
-      </div>
+      <CalendarTips />
     </div>
   );
 };
