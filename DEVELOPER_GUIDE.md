@@ -1,6 +1,6 @@
-# Guide Développeur - EventPro avec Supabase
+# Guide Développeur - Esil-Events avec Supabase
 
-Ce guide est destiné aux développeurs qui travaillent sur l'application EventPro avec l'intégration Supabase.
+Ce guide est destiné aux développeurs qui travaillent sur l'application Esil-Events avec l'intégration Supabase.
 
 ## 🏗️ Architecture
 

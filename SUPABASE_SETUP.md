@@ -1,6 +1,6 @@
-# Configuration Supabase pour EventPro
+# Configuration Supabase pour Esil-Events
 
-Ce guide vous explique comment configurer Supabase pour votre application EventPro.
+Ce guide vous explique comment configurer Supabase pour votre application Esil-Events.
 
 ## 🚀 Étapes de Configuration
 
@@ -37,12 +37,12 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 1. **Créer l'admin :**
    - Allez dans Authentication > Users
    - Cliquez sur "Add user"
-   - Email: `admin@eventpro.com`
+   - Email: `admin@Esil-Events.com`
    - Password: `admin123`
    - Notez l'UUID généré
 
 2. **Créer le technicien :**
-   - Email: `tech@eventpro.com`
+   - Email: `tech@Esil-Events.com`
    - Password: `tech123`
    - Notez l'UUID généré
 
@@ -51,11 +51,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```sql
 -- Insérer le profil admin (remplacez l'UUID par celui généré)
 INSERT INTO users (id, email, first_name, last_name, role, phone) VALUES
-  ('UUID_DE_L_ADMIN', 'admin@eventpro.com', 'Admin', 'System', 'admin', '+33123456789');
+  ('UUID_DE_L_ADMIN', 'admin@Esil-Events.com', 'Admin', 'System', 'admin', '+33123456789');
 
 -- Insérer le profil technicien (remplacez l'UUID par celui généré)
 INSERT INTO users (id, email, first_name, last_name, role, phone) VALUES
-  ('UUID_DU_TECH', 'tech@eventpro.com', 'Jean', 'Dupont', 'technician', '+33987654321');
+  ('UUID_DU_TECH', 'tech@Esil-Events.com', 'Jean', 'Dupont', 'technician', '+33987654321');
 
 -- Ajouter des compétences au technicien
 INSERT INTO user_skills (user_id, skill_id) VALUES
@@ -88,8 +88,8 @@ Le script crée automatiquement :
    ```
 
 2. **Tester la connexion :**
-   - Admin: `admin@eventpro.com` / `admin123`
-   - Technicien: `tech@eventpro.com` / `tech123`
+   - Admin: `admin@Esil-Events.com` / `admin123`
+   - Technicien: `tech@Esil-Events.com` / `tech123`
 
 3. **Vérifier les données :**
    - Les compétences et types d'événements sont automatiquement chargés

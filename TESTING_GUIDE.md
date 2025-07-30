@@ -40,8 +40,8 @@
 ## 🔧 Données de Test
 
 ### Comptes de Démonstration Existants
-- **Admin** : `admin@eventpro.com` / `admin123`
-- **Technicien** : `tech@eventpro.com` / `tech123`
+- **Admin** : `admin@Esil-Events.com` / `admin123`
+- **Technicien** : `tech@Esil-Events.com` / `tech123`
 
 ### Exemple de Nouveau Technicien
 - **Prénom** : Jean

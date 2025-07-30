@@ -36,7 +36,7 @@ export const Header: React.FC = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-white group-hover:text-blue-100 transition-colors">
-                  EventPro
+                  Esil-Events
                 </span>
                 <span className="text-xs text-blue-200 opacity-80">Gestion Événementielle</span>
               </div>

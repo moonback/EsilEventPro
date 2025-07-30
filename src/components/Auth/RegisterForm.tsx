@@ -91,7 +91,7 @@ export const RegisterForm: React.FC = () => {
             Inscription Technicien
           </h2>
           <p className="mt-3 text-gray-600 font-medium">
-            Rejoignez l'équipe EventPro en tant que technicien
+            Rejoignez l'équipe Esil-Events en tant que technicien
           </p>
           <div className="mt-2 w-16 h-1 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-full mx-auto"></div>
         </div>

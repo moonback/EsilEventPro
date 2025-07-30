@@ -33,7 +33,7 @@ export const LoginForm: React.FC = () => {
             <Calendar className="h-10 w-10 text-white group-hover:scale-110 transition-transform" />
           </div>
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-            EventPro
+            Esil-Events
           </h2>
           <p className="mt-3 text-gray-600 font-medium">
             Gestion d'événements professionnelle

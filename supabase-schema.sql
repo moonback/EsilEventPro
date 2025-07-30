@@ -1,4 +1,4 @@
--- Script de création des tables pour EventPro
+-- Script de création des tables pour Esil-Events
 -- À exécuter dans l'éditeur SQL de Supabase
 
 -- Table des utilisateurs

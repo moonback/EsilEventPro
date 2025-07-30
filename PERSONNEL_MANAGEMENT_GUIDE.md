@@ -1,4 +1,4 @@
-# Guide de Gestion du Personnel - EventPro
+# Guide de Gestion du Personnel - Esil-Events
 
 ## Vue d'ensemble
 
@@ -168,4 +168,4 @@ En cas de problème persistant :
 
 ---
 
-*Ce guide est destiné aux administrateurs du système EventPro. Pour toute question ou suggestion d'amélioration, contactez l'équipe de développement.* 
+*Ce guide est destiné aux administrateurs du système Esil-Events. Pour toute question ou suggestion d'amélioration, contactez l'équipe de développement.* 
