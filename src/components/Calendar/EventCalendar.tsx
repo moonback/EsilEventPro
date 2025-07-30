@@ -77,27 +77,25 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
         borderColor = resource.type.color;
     }
 
-            return {
-          style: {
-            background: backgroundColor,
-            borderRadius: '8px',
-            opacity: 0.95,
-            color: textColor,
-            border: `2px solid ${borderColor}`,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            fontSize: '12px',
-            fontWeight: '600',
-            padding: '2px 4px',
-            transition: 'all 0.2s ease-in-out',
-            cursor: 'pointer',
-            minHeight: '24px',
-            lineHeight: '1.2',
-          },
-          className: 'group',
-        };
+    return {
+      style: {
+        background: backgroundColor,
+        borderRadius: '6px',
+        opacity: 0.95,
+        color: textColor,
+        border: `1px solid ${borderColor}`,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        fontSize: '11px',
+        fontWeight: '500',
+        padding: '4px 6px',
+        transition: 'all 0.2s ease-in-out',
+        cursor: 'pointer',
+        minHeight: '32px',
+        lineHeight: '1.3',
+        overflow: 'hidden',
+      },
+      className: 'group hover:opacity-100 event-item',
+    };
   };
 
   const handleSelectEvent = (calendarEvent: CalendarEvent) => {
@@ -119,15 +117,58 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
     }
   };
 
-  // Composant personnalisé pour les événements
+  // Composant personnalisé pour les événements avec heures et emplacement
   const EventComponent = ({ event }: { event: CalendarEvent }) => {
+    const startTime = format(event.start, 'HH:mm');
+    const endTime = format(event.end, 'HH:mm');
+    const isAllDay = event.start.getHours() === 0 && event.end.getHours() === 0;
+    const { resource } = event;
+    
     return (
-      <div className="flex justify-between items-center w-full h-full">
-        <span className="truncate flex-1">{event.title}</span>
+      <div className="event-item">
+        {/* Titre de l'événement */}
+        <div className="event-title truncate">
+          {event.title}
+        </div>
+        
+        {/* Heures */}
+        {!isAllDay && (
+          <div className="event-time flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            {startTime} - {endTime}
+          </div>
+        )}
+        
+        {/* Emplacement */}
+        {resource.location && (
+          <div className="event-location flex items-center">
+            <MapPin className="h-3 w-3 mr-1" />
+            <span className="truncate">{resource.location}</span>
+          </div>
+        )}
+        
+        {/* Statut */}
+        <div className="event-status">
+          <span className={`inline-block px-1 py-0.5 rounded text-xs font-medium ${
+            resource.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+            resource.status === 'published' ? 'bg-blue-100 text-blue-800' :
+            resource.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+            resource.status === 'completed' ? 'bg-purple-100 text-purple-800' :
+            'bg-red-100 text-red-800'
+          }`}>
+            {resource.status === 'confirmed' ? 'Confirmé' :
+             resource.status === 'published' ? 'Publié' :
+             resource.status === 'draft' ? 'Brouillon' :
+             resource.status === 'completed' ? 'Terminé' :
+             'Annulé'}
+          </span>
+        </div>
+        
+        {/* Bouton de suppression */}
         {onDeleteEvent && (
           <button
             onClick={(e) => handleDeleteEvent(event, e)}
-            className="ml-1 p-0.5 text-white hover:text-red-200 hover:bg-red-600/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+            className="absolute top-1 right-1 p-0.5 text-white hover:text-red-200 hover:bg-red-600/20 rounded transition-colors opacity-0 group-hover:opacity-100"
             title="Supprimer l'événement"
           >
             <Trash2 className="h-3 w-3" />
@@ -139,12 +180,12 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return 'bg-gray-500';
-      case 'published': return 'bg-yellow-500';
-      case 'confirmed': return 'bg-green-500';
+      case 'draft': return 'bg-gray-400';
+      case 'published': return 'bg-yellow-400';
+      case 'confirmed': return 'bg-green-400';
       case 'completed': return 'bg-gray-600';
-      case 'cancelled': return 'bg-red-500';
-      default: return 'bg-blue-500';
+      case 'cancelled': return 'bg-red-400';
+      default: return 'bg-blue-400';
     }
   };
 
@@ -160,38 +201,33 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6 animate-fade-in">
-      {/* Header du calendrier */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-              <CalendarIcon className="h-6 w-6 text-white" />
+    <div className="space-y-6">
+      {/* Statistiques rapides */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+        <div className="grid grid-cols-4 gap-4 text-center">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">
+              {events.length}
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-gray-900">Calendrier des événements</h3>
-              <p className="text-gray-600 text-sm">Gérez vos événements et affectations</p>
-            </div>
+            <div className="text-xs text-gray-500">Total</div>
           </div>
-          
-          {/* Statistiques rapides */}
-          <div className="hidden lg:flex items-center space-x-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{events.length}</div>
-              <div className="text-xs text-gray-500">Événements</div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">
+              {events.filter(e => e.status === 'confirmed').length}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {events.filter(e => e.status === 'confirmed').length}
-              </div>
-              <div className="text-xs text-gray-500">Confirmés</div>
+            <div className="text-xs text-gray-500">Confirmés</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-yellow-600">
+              {events.filter(e => e.status === 'published').length}
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {events.filter(e => e.status === 'published').length}
-              </div>
-              <div className="text-xs text-gray-500">En attente</div>
+            <div className="text-xs text-gray-500">En attente</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-600">
+              {events.filter(e => e.status === 'draft').length}
             </div>
+            <div className="text-xs text-gray-500">Brouillons</div>
           </div>
         </div>
       </div>
@@ -212,7 +248,7 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
             components={{
               event: EventComponent,
             }}
-            views={[Views.MONTH, Views.WEEK, Views.DAY]}
+            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             defaultView={Views.MONTH}
             messages={{
               next: 'Suivant',
@@ -232,15 +268,25 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
               monthHeaderFormat: 'MMMM yyyy',
               dayHeaderFormat: 'EEEE dd MMMM',
               dayRangeHeaderFormat: ({ start, end }) =>
-                `${format(start, 'dd MMMM', { locale: fr })} - ${format(end, 'dd MMMM yyyy', { locale: fr })}`,
+                `${format(start, 'dd MMM', { locale: fr })} - ${format(end, 'dd MMM yyyy', { locale: fr })}`,
               timeGutterFormat: 'HH:mm',
               eventTimeRangeFormat: ({ start, end }) =>
                 `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`,
+              dayFormat: 'dd MMM',
+              selectRangeFormat: ({ start, end }) =>
+                `${format(start, 'dd/MM/yyyy HH:mm')} - ${format(end, 'dd/MM/yyyy HH:mm')}`,
             }}
             className="event-calendar"
             popup
-            step={60}
-            timeslots={1}
+            step={15}
+            timeslots={4}
+            min={new Date(0, 0, 0, 6, 0, 0)} // Commence à 6h
+            max={new Date(0, 0, 0, 22, 0, 0)} // Termine à 22h
+            dayLayoutAlgorithm="no-overlap"
+            scrollToTime={new Date(0, 0, 0, 8, 0, 0)} // Scroll vers 8h par défaut
+            length={30} // Durée par défaut des créneaux (30 minutes)
+            rtl={false}
+            showMultiDayTimes={false}
           />
         </div>
       </div>
@@ -270,8 +316,8 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
           <div>
             <h5 className="text-sm font-semibold text-blue-800 mb-1">Conseils d'utilisation</h5>
             <p className="text-xs text-blue-700">
-              Cliquez sur un événement pour voir les détails • Double-cliquez sur un créneau pour créer un nouvel événement • 
-              Utilisez les boutons de navigation pour changer de vue
+              • Cliquez sur un événement pour voir les détails • Double-cliquez sur un créneau pour créer un nouvel événement • 
+              Utilisez les boutons de navigation pour changer de vue • Les heures sont affichées dans chaque événement
             </p>
           </div>
         </div>

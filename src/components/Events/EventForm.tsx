@@ -137,17 +137,38 @@ export const EventForm: React.FC<EventFormProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Calendar className="inline h-4 w-4 mr-1" />
-              Date de début
+              Date et heure de début
             </label>
             <Controller
               name="startDate"
               control={control}
-              rules={{ required: 'Date de début requise' }}
+              rules={{ 
+                required: 'Date de début requise',
+                validate: (value) => {
+                  if (!value) return 'Date de début requise';
+                  const now = new Date();
+                  if (value < now) {
+                    return 'La date de début ne peut pas être dans le passé';
+                  }
+                  return true;
+                }
+              }}
               render={({ field }) => (
                 <input
                   type="datetime-local"
                   value={format(field.value, "yyyy-MM-dd'T'HH:mm")}
-                  onChange={(e) => field.onChange(new Date(e.target.value))}
+                  onChange={(e) => {
+                    const newDate = new Date(e.target.value);
+                    field.onChange(newDate);
+                    
+                    // Mettre à jour automatiquement la date de fin si elle est antérieure
+                    const endDate = watch('endDate');
+                    if (endDate && newDate >= endDate) {
+                      const newEndDate = new Date(newDate);
+                      newEndDate.setHours(newEndDate.getHours() + 1);
+                      setValue('endDate', newEndDate);
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               )}
@@ -160,12 +181,22 @@ export const EventForm: React.FC<EventFormProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Clock className="inline h-4 w-4 mr-1" />
-              Date de fin
+              Date et heure de fin
             </label>
             <Controller
               name="endDate"
               control={control}
-              rules={{ required: 'Date de fin requise' }}
+              rules={{ 
+                required: 'Date de fin requise',
+                validate: (value) => {
+                  if (!value) return 'Date de fin requise';
+                  const startDate = watch('startDate');
+                  if (startDate && value <= startDate) {
+                    return 'La date de fin doit être après la date de début';
+                  }
+                  return true;
+                }
+              }}
               render={({ field }) => (
                 <input
                   type="datetime-local"
