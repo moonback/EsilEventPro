@@ -8,57 +8,80 @@ type Tables = Database['public']['Tables'];
 // Service pour les utilisateurs
 export const userService = {
   async getAll(): Promise<User[]> {
-    const { data, error } = await supabase
+    // Récupérer les utilisateurs et leurs compétences séparément pour éviter les problèmes de RLS
+    const { data: usersData, error: usersError } = await supabase
       .from('users')
+      .select('*');
+
+    if (usersError) throw usersError;
+
+    const { data: userSkillsData, error: userSkillsError } = await supabase
+      .from('user_skills')
       .select(`
-        *,
-        user_skills (
-          skill_id,
-          skills (*)
-        )
+        user_id,
+        skills (*)
       `);
 
-    if (error) throw error;
+    if (userSkillsError) throw userSkillsError;
 
-    return data?.map(user => ({
+    // Organiser les compétences par utilisateur
+    const skillsByUser: { [key: string]: any[] } = {};
+    userSkillsData?.forEach((item: any) => {
+      if (!skillsByUser[item.user_id]) {
+        skillsByUser[item.user_id] = [];
+      }
+      if (item.skills) {
+        skillsByUser[item.user_id].push(item.skills);
+      }
+    });
+
+    return usersData?.map(user => ({
       id: user.id,
       email: user.email,
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
       phone: user.phone,
-      skills: user.user_skills?.map((us: any) => us.skills) || [],
+      hourlyRate: user.hourly_rate || 0,
+      skills: skillsByUser[user.id] || [],
       createdAt: new Date(user.created_at),
       updatedAt: new Date(user.updated_at),
     })) || [];
   },
 
   async getById(id: string): Promise<User | null> {
-    const { data, error } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from('users')
-      .select(`
-        *,
-        user_skills (
-          skill_id,
-          skills (*)
-        )
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
-    if (error) throw error;
-    if (!data) return null;
+    if (userError) throw userError;
+    if (!userData) return null;
+
+    // Récupérer les compétences de l'utilisateur
+    const { data: userSkillsData, error: userSkillsError } = await supabase
+      .from('user_skills')
+      .select(`
+        skills (*)
+      `)
+      .eq('user_id', id);
+
+    if (userSkillsError) throw userSkillsError;
+
+    const skills = userSkillsData?.map((item: any) => item.skills).filter(Boolean) || [];
 
     return {
-      id: data.id,
-      email: data.email,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      role: data.role,
-      phone: data.phone,
-      skills: data.user_skills?.map((us: any) => us.skills) || [],
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
+      id: userData.id,
+      email: userData.email,
+      firstName: userData.first_name,
+      lastName: userData.last_name,
+      role: userData.role,
+      phone: userData.phone,
+      hourlyRate: userData.hourly_rate || 0,
+      skills: skills,
+      createdAt: new Date(userData.created_at),
+      updatedAt: new Date(userData.updated_at),
     };
   },
 
@@ -71,6 +94,7 @@ export const userService = {
         last_name: userData.lastName,
         role: userData.role,
         phone: userData.phone,
+        hourly_rate: userData.hourlyRate || 0,
       })
       .select()
       .single();
@@ -94,6 +118,7 @@ export const userService = {
       lastName: data.last_name,
       role: data.role,
       phone: data.phone,
+      hourlyRate: data.hourly_rate || 0,
       skills: userData.skills,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
@@ -107,6 +132,7 @@ export const userService = {
     if (userData.lastName) updateData.last_name = userData.lastName;
     if (userData.role) updateData.role = userData.role;
     if (userData.phone) updateData.phone = userData.phone;
+    if (userData.hourlyRate !== undefined) updateData.hourly_rate = userData.hourlyRate;
     updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
@@ -140,6 +166,7 @@ export const userService = {
       lastName: data.last_name,
       role: data.role,
       phone: data.phone,
+      hourlyRate: data.hourly_rate || 0,
       skills: userData.skills || [],
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),

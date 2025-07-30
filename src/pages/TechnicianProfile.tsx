@@ -31,6 +31,7 @@ export const TechnicianProfile: React.FC = () => {
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
+    hourlyRate: user?.hourlyRate || 0,
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -137,6 +138,7 @@ export const TechnicianProfile: React.FC = () => {
         lastName: user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
+        hourlyRate: user.hourlyRate || 0,
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
@@ -183,6 +185,7 @@ export const TechnicianProfile: React.FC = () => {
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
+        hourlyRate: formData.hourlyRate,
       };
 
       // Ajouter le mot de passe si fourni
@@ -233,6 +236,7 @@ export const TechnicianProfile: React.FC = () => {
         lastName: user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
+        hourlyRate: user.hourlyRate || 0,
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
@@ -372,6 +376,22 @@ export const TechnicianProfile: React.FC = () => {
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   disabled={!isEditing}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Taux horaire (€/h)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.hourlyRate}
+                  onChange={(e) => handleInputChange('hourlyRate', e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
+                  placeholder="0.00"
                 />
               </div>
             </div>
@@ -626,7 +646,7 @@ export const TechnicianProfile: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Taux d'acceptation */}
+                                {/* Taux d'acceptation */}
                 {stats.totalAssignments > 0 && (
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between">
@@ -636,7 +656,7 @@ export const TechnicianProfile: React.FC = () => {
                       </span>
                     </div>
                     <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className="bg-green-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${(stats.acceptedAssignments / stats.totalAssignments) * 100}%` }}
                       ></div>
@@ -645,6 +665,80 @@ export const TechnicianProfile: React.FC = () => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Informations de rémunération */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+              Rémunération
+            </h2>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="font-medium text-gray-900">Taux horaire</div>
+                    <div className="text-sm text-gray-500">Tarif actuel</div>
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-green-600">
+                  {user?.hourlyRate ? `${user.hourlyRate.toFixed(2)}€` : 'Non défini'}
+                </div>
+              </div>
+
+              {user?.hourlyRate && user.hourlyRate > 0 && (
+                <>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Clock className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">Gains ce mois</div>
+                        <div className="text-sm text-gray-500">Estimation</div>
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {(stats.hoursThisMonth * user.hourlyRate).toFixed(2)}€
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">Gains cette année</div>
+                        <div className="text-sm text-gray-500">Estimation</div>
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {(stats.hoursThisYear * user.hourlyRate).toFixed(2)}€
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Clock className="h-5 w-5 text-indigo-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">Gains totaux</div>
+                        <div className="text-sm text-gray-500">Estimation</div>
+                      </div>
+                    </div>
+                    <div className="text-2xl font-bold text-indigo-600">
+                      {(stats.hoursWorked * user.hourlyRate).toFixed(2)}€
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(!user?.hourlyRate || user.hourlyRate === 0) && (
+                <div className="text-center py-4">
+                  <p className="text-gray-600 text-sm">
+                    Définissez votre taux horaire pour voir vos gains estimés
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Informations du compte */}

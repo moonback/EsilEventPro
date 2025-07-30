@@ -14,18 +14,24 @@ export const authService = {
     // Récupérer les données utilisateur depuis notre table users
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select(`
-        *,
-        user_skills (
-          skill_id,
-          skills (*)
-        )
-      `)
+      .select('*')
       .eq('id', data.user.id)
       .single();
 
     if (userError) throw userError;
     if (!userData) throw new Error('Profil utilisateur non trouvé');
+
+    // Récupérer les compétences de l'utilisateur
+    const { data: userSkillsData, error: userSkillsError } = await supabase
+      .from('user_skills')
+      .select(`
+        skills (*)
+      `)
+      .eq('user_id', data.user.id);
+
+    if (userSkillsError) throw userSkillsError;
+
+    const skills = userSkillsData?.map((item: any) => item.skills).filter(Boolean) || [];
 
     return {
       id: userData.id,
@@ -34,7 +40,8 @@ export const authService = {
       lastName: userData.last_name,
       role: userData.role,
       phone: userData.phone,
-      skills: userData.user_skills?.map((us: any) => us.skills) || [],
+      hourlyRate: userData.hourly_rate || 0,
+      skills: skills,
       createdAt: new Date(userData.created_at),
       updatedAt: new Date(userData.updated_at),
     };

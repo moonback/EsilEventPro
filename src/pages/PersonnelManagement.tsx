@@ -35,92 +35,54 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
 
   const fetchUsers = async () => {
     try {
-      // Méthode alternative : récupérer les utilisateurs avec leurs compétences en une seule requête
-      const { data, error } = await supabase
+      // Récupérer les utilisateurs avec leurs compétences en utilisant une approche séparée
+      // pour éviter les problèmes de récursion infinie avec les politiques RLS
+      const { data: usersData, error: usersError } = await supabase
         .from('users')
-        .select(`
-          *,
-          user_skills!inner (
-            skills (
-              id,
-              name,
-              category,
-              level
-            )
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erreur avec la requête join:', error);
-        
-        // Fallback : méthode séparée si la jointure ne fonctionne pas
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: false });
+      if (usersError) throw usersError;
 
-        if (usersError) throw usersError;
+      const { data: userSkillsData, error: userSkillsError } = await supabase
+        .from('user_skills')
+        .select(`
+          user_id,
+          skills (
+            id,
+            name,
+            category,
+            level
+          )
+        `);
 
-        const { data: userSkillsData, error: userSkillsError } = await supabase
-          .from('user_skills')
-          .select(`
-            user_id,
-            skills (
-              id,
-              name,
-              category,
-              level
-            )
-          `);
+      if (userSkillsError) throw userSkillsError;
 
-        if (userSkillsError) throw userSkillsError;
+      // Organiser les compétences par utilisateur
+      const skillsByUser: { [key: string]: any[] } = {};
+      userSkillsData?.forEach((item: any) => {
+        if (!skillsByUser[item.user_id]) {
+          skillsByUser[item.user_id] = [];
+        }
+        if (item.skills) {
+          skillsByUser[item.user_id].push(item.skills);
+        }
+      });
 
-        // Organiser les compétences par utilisateur
-        const skillsByUser: { [key: string]: any[] } = {};
-        userSkillsData?.forEach((item: any) => {
-          if (!skillsByUser[item.user_id]) {
-            skillsByUser[item.user_id] = [];
-          }
-          if (item.skills) {
-            skillsByUser[item.user_id].push(item.skills);
-          }
-        });
+      const formattedUsers: User[] = usersData?.map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        phone: user.phone || '',
+        hourlyRate: user.hourly_rate || 0,
+        skills: skillsByUser[user.id] || [],
+        createdAt: new Date(user.created_at),
+        updatedAt: new Date(user.updated_at),
+      })) || [];
 
-        // Debug: afficher les données récupérées
-        console.log('Users data:', usersData);
-        console.log('User skills data:', userSkillsData);
-        console.log('Skills by user:', skillsByUser);
-
-        const formattedUsers: User[] = usersData?.map((user: any) => ({
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          phone: user.phone || '',
-          skills: skillsByUser[user.id] || [],
-          createdAt: new Date(user.created_at),
-          updatedAt: new Date(user.updated_at),
-        })) || [];
-
-        setUsers(formattedUsers);
-      } else {
-        // Si la jointure fonctionne
-        const formattedUsers: User[] = data?.map((user: any) => ({
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-          phone: user.phone || '',
-          skills: user.user_skills?.map((us: any) => us.skills).filter(Boolean) || [],
-          createdAt: new Date(user.created_at),
-          updatedAt: new Date(user.updated_at),
-        })) || [];
-
-        setUsers(formattedUsers);
-      }
+      setUsers(formattedUsers);
     } catch (error) {
       console.error('Erreur lors du chargement des utilisateurs:', error);
       toast.error('Erreur lors du chargement des utilisateurs');

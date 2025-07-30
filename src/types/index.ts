@@ -6,6 +6,7 @@ export interface User {
   lastName: string;
   role: 'admin' | 'technician';
   phone?: string;
+  hourlyRate?: number; // Taux horaire en euros par heure
   skills: Skill[];
   createdAt: Date;
   updatedAt: Date;
