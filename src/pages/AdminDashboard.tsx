@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase } from 'lucide-react';
 import { EventCalendar } from '../components/Calendar/EventCalendar';
 import { EventForm } from '../components/Events/EventForm';
 import { useAppStore } from '../store/useAppStore';
@@ -8,12 +8,16 @@ import { Event, EventFormData } from '../types';
 import { format, isToday, isTomorrow, addDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
+import PersonnelManagement from './PersonnelManagement';
+import SkillsManagement from './SkillsManagement';
+import AssignmentsManagement from './AssignmentsManagement';
 
 export const AdminDashboard: React.FC = () => {
   const { events, users, assignments, addEvent, updateEvent, loadInitialData } = useAppStore();
   const { user } = useAuthStore();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'personnel' | 'skills' | 'assignments'>('dashboard');
 
   useEffect(() => {
     // Les données sont maintenant chargées automatiquement dans App.tsx
@@ -76,6 +80,10 @@ export const AdminDashboard: React.FC = () => {
     setShowEventForm(true);
   };
 
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page as any);
+  };
+
   if (showEventForm) {
     return (
       <div className="space-y-6">
@@ -107,22 +115,87 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Administrateur</h1>
-          <p className="text-gray-600">
-            Vue d'ensemble de vos événements et équipes
-          </p>
+      {/* Navigation */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="flex space-x-1 p-1">
+          <button
+            onClick={() => setCurrentPage('dashboard')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              currentPage === 'dashboard'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setCurrentPage('personnel')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              currentPage === 'personnel'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Personnel
+          </button>
+          <button
+            onClick={() => setCurrentPage('skills')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              currentPage === 'skills'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Compétences
+          </button>
+          <button
+            onClick={() => setCurrentPage('assignments')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              currentPage === 'assignments'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+          >
+            <Briefcase className="h-4 w-4 mr-2" />
+            Affectations
+          </button>
         </div>
-        <button
-          onClick={() => setShowEventForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Calendar className="h-4 w-4" />
-          <span>Nouvel événement</span>
-        </button>
       </div>
+
+      {/* Contenu des pages */}
+      {currentPage === 'personnel' && (
+        <PersonnelManagement onNavigate={handleNavigate} />
+      )}
+
+      {currentPage === 'skills' && (
+        <SkillsManagement onNavigate={handleNavigate} />
+      )}
+
+      {currentPage === 'assignments' && (
+        <AssignmentsManagement onNavigate={handleNavigate} />
+      )}
+
+      {currentPage === 'dashboard' && (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard Administrateur</h1>
+              <p className="text-gray-600">
+                Vue d'ensemble de vos événements et équipes
+              </p>
+            </div>
+            <button
+              onClick={() => setShowEventForm(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Calendar className="h-4 w-4" />
+              <span>Nouvel événement</span>
+            </button>
+          </div>
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -242,6 +315,8 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };
