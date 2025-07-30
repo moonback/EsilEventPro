@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, User, Filter, CalendarDays, Eye, FileText, Users, Briefcase } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, User, Filter, CalendarDays, Eye, FileText, Users, Briefcase, Trash2 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { Assignment, Event, CalendarEvent } from '../types';
@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import '../styles/technician-calendar.css';
 
 export const TechnicianCalendar: React.FC = () => {
-  const { events, assignments, users, updateAssignment } = useAppStore();
+  const { events, assignments, users, updateAssignment, deleteEvent } = useAppStore();
   const { user } = useAuthStore();
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [declineReason, setDeclineReason] = useState('');
@@ -72,6 +72,20 @@ export const TechnicianCalendar: React.FC = () => {
     setSelectedAssignment(null);
     setDeclineReason('');
     toast.success('Réponse enregistrée');
+  };
+
+  const handleDeleteEvent = async (event: Event) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'événement "${event.title}" ?`)) {
+      return;
+    }
+
+    try {
+      await deleteEvent(event.id);
+      toast.success('Événement supprimé avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'événement:', error);
+      toast.error('Erreur lors de la suppression de l\'événement');
+    }
   };
 
   const getEventStatus = (event: Event & { assignment?: Assignment }) => {
@@ -487,6 +501,16 @@ export const TechnicianCalendar: React.FC = () => {
                           <AssignmentStatusIcon className="h-3 w-3 inline mr-1" />
                           {assignmentStatus.label}
                         </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteEvent(event);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Supprimer l'événement"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
 

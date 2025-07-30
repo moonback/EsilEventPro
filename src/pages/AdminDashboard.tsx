@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase, Plus, BarChart3, MapPin } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, AlertCircle, TrendingUp, UserPlus, Settings, Briefcase, Plus, BarChart3, MapPin, Trash2 } from 'lucide-react';
 import { EventCalendar } from '../components/Calendar/EventCalendar';
 import { EventForm } from '../components/Events/EventForm';
 import { useAppStore } from '../store/useAppStore';
@@ -13,7 +13,7 @@ import SkillsManagement from './SkillsManagement';
 import AssignmentsManagement from './AssignmentsManagement';
 
 export const AdminDashboard: React.FC = () => {
-  const { events, users, assignments, addEvent, updateEvent, loadInitialData } = useAppStore();
+  const { events, users, assignments, addEvent, updateEvent, deleteEvent, loadInitialData } = useAppStore();
   const { user } = useAuthStore();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
@@ -77,6 +77,20 @@ export const AdminDashboard: React.FC = () => {
   const handleCreateFromSlot = (slotInfo: { start: Date; end: Date }) => {
     setSelectedEvent(null);
     setShowEventForm(true);
+  };
+
+  const handleDeleteEvent = async (event: Event) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'événement "${event.title}" ?`)) {
+      return;
+    }
+
+    try {
+      await deleteEvent(event.id);
+      toast.success('Événement supprimé avec succès !');
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'événement:', error);
+      toast.error('Erreur lors de la suppression de l\'événement');
+    }
   };
 
   const handleNavigate = (page: string) => {
@@ -311,12 +325,22 @@ export const AdminDashboard: React.FC = () => {
                     {event.status === 'confirmed' ? 'Confirmé' :
                      event.status === 'published' ? 'Publié' : 'Brouillon'}
                   </span>
-                  <button
-                    onClick={() => handleSelectEvent(event)}
-                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handleSelectEvent(event)}
+                      className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      title="Modifier l'événement"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(event)}
+                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Supprimer l'événement"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -336,6 +360,7 @@ export const AdminDashboard: React.FC = () => {
         <EventCalendar
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleCreateFromSlot}
+          onDeleteEvent={handleDeleteEvent}
           height={600}
         />
       </div>

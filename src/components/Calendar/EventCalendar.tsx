@@ -5,7 +5,7 @@ import { fr } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Event, CalendarEvent } from '../../types';
 import { useAppStore } from '../../store/useAppStore';
-import { Calendar as CalendarIcon, Clock, MapPin, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Trash2 } from 'lucide-react';
 
 const locales = {
   fr: fr,
@@ -22,12 +22,14 @@ const localizer = dateFnsLocalizer({
 interface EventCalendarProps {
   onSelectEvent?: (event: Event) => void;
   onSelectSlot?: (slotInfo: { start: Date; end: Date }) => void;
+  onDeleteEvent?: (event: Event) => void;
   height?: number;
 }
 
 export const EventCalendar: React.FC<EventCalendarProps> = ({
   onSelectEvent,
   onSelectSlot,
+  onDeleteEvent,
   height = 700,
 }) => {
   const { events } = useAppStore();
@@ -75,24 +77,27 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
         borderColor = resource.type.color;
     }
 
-    return {
-      style: {
-        background: backgroundColor,
-        borderRadius: '8px',
-        opacity: 0.95,
-        color: textColor,
-        border: `2px solid ${borderColor}`,
-        display: 'block',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        fontSize: '12px',
-        fontWeight: '600',
-        padding: '2px 4px',
-        transition: 'all 0.2s ease-in-out',
-        cursor: 'pointer',
-        minHeight: '24px',
-        lineHeight: '1.2',
-      },
-    };
+            return {
+          style: {
+            background: backgroundColor,
+            borderRadius: '8px',
+            opacity: 0.95,
+            color: textColor,
+            border: `2px solid ${borderColor}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            fontSize: '12px',
+            fontWeight: '600',
+            padding: '2px 4px',
+            transition: 'all 0.2s ease-in-out',
+            cursor: 'pointer',
+            minHeight: '24px',
+            lineHeight: '1.2',
+          },
+          className: 'group',
+        };
   };
 
   const handleSelectEvent = (calendarEvent: CalendarEvent) => {
@@ -101,10 +106,35 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
     }
   };
 
+  const handleDeleteEvent = (calendarEvent: CalendarEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDeleteEvent) {
+      onDeleteEvent(calendarEvent.resource);
+    }
+  };
+
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
     if (onSelectSlot) {
       onSelectSlot(slotInfo);
     }
+  };
+
+  // Composant personnalisé pour les événements
+  const EventComponent = ({ event }: { event: CalendarEvent }) => {
+    return (
+      <div className="flex justify-between items-center w-full h-full">
+        <span className="truncate flex-1">{event.title}</span>
+        {onDeleteEvent && (
+          <button
+            onClick={(e) => handleDeleteEvent(event, e)}
+            className="ml-1 p-0.5 text-white hover:text-red-200 hover:bg-red-600/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+            title="Supprimer l'événement"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -178,7 +208,10 @@ export const EventCalendar: React.FC<EventCalendarProps> = ({
             onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
             selectable="ignoreEvents"
-            Esil-EventspGetter={eventStyleGetter}
+            eventPropGetter={eventStyleGetter}
+            components={{
+              event: EventComponent,
+            }}
             views={[Views.MONTH, Views.WEEK, Views.DAY]}
             defaultView={Views.MONTH}
             messages={{
