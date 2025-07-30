@@ -15,6 +15,7 @@ import PersonnelManagement from './pages/PersonnelManagement';
 import SkillsManagement from './pages/SkillsManagement';
 import AssignmentsManagement from './pages/AssignmentsManagement';
 import EventsManagement from './pages/EventsManagement';
+import CreateEvent from './pages/CreateEvent';
 import { TechnicianCalendar } from './pages/TechnicianCalendar';
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
               <>
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/events" element={<EventsManagement onNavigate={() => {}} />} />
+                <Route path="/admin/events/create" element={<CreateEvent />} />
                 <Route path="/admin/users" element={<PersonnelManagement onNavigate={() => {}} />} />
                 <Route path="/admin/skills" element={<SkillsManagement onNavigate={() => {}} />} />
                 <Route path="/admin/assignments" element={<AssignmentsManagement onNavigate={() => {}} />} />
