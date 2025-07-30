@@ -14,7 +14,7 @@ export interface User {
 export interface Skill {
   id: string;
   name: string;
-  category: 'sound' | 'lighting' | 'video' | 'general';
+  category: 'sound' | 'lighting' | 'video' | 'general' | 'stage';
   level: 'beginner' | 'intermediate' | 'expert';
 }
 

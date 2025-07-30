@@ -32,6 +32,7 @@ export const skillCategories = [
   { value: 'lighting', label: 'Éclairage', color: '#F59E0B' },
   { value: 'video', label: 'Vidéo', color: '#EF4444' },
   { value: 'stage', label: 'Scène', color: '#8B5CF6' },
+  
 ] as const;
 
 // Configuration des niveaux de compétences
