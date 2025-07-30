@@ -2,18 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, Calendar, MapPin, Edit, Save, X, CheckCircle, XCircle, AlertTriangle, Briefcase, Award, Clock, TrendingUp, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
-import { User as UserType, Skill } from '../types';
-import { format } from 'date-fns';
+import { User as UserType, Skill, Assignment } from '../types';
+import { format, differenceInHours, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
-import { userSkillsService } from '../services/supabaseService';
+import { userSkillsService, userStatsService } from '../services/supabaseService';
 
 export const TechnicianProfile: React.FC = () => {
   const { user, updateUser } = useAuthStore();
-  const { skills, updateUser: updateUserInStore } = useAppStore();
+  const { skills, updateUser: updateUserInStore, assignments, events } = useAppStore();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [userStats, setUserStats] = useState({
+    totalAssignments: 0,
+    acceptedAssignments: 0,
+    declinedAssignments: 0,
+    pendingAssignments: 0,
+    hoursWorked: 0,
+    hoursThisMonth: 0,
+    hoursThisYear: 0
+  });
   
   // État du formulaire
   const [formData, setFormData] = useState({
@@ -30,6 +40,95 @@ export const TechnicianProfile: React.FC = () => {
   const [selectedSkills, setSelectedSkills] = useState<string[]>(
     user?.skills?.map(skill => skill.id) || []
   );
+
+  // Charger les statistiques utilisateur
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (!user) return;
+      
+      setStatsLoading(true);
+      try {
+        const stats = await userStatsService.getUserStats(user.id);
+        setUserStats(stats);
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+        toast.error('Erreur lors du chargement des statistiques');
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    loadUserStats();
+  }, [user]);
+
+  // Calcul des statistiques réelles (fallback local)
+  const calculateStats = () => {
+    if (!user) return userStats;
+
+    // Récupérer les affectations de l'utilisateur
+    const userAssignments = assignments.filter(a => a.technicianId === user.id);
+    
+    // Contrats totaux
+    const totalAssignments = userAssignments.length;
+    
+    // Contrats par statut
+    const acceptedAssignments = userAssignments.filter(a => a.status === 'accepted').length;
+    const declinedAssignments = userAssignments.filter(a => a.status === 'declined').length;
+    const pendingAssignments = userAssignments.filter(a => a.status === 'pending').length;
+    
+    // Calcul des heures travaillées
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear(), 11, 31);
+    
+    let hoursWorked = 0;
+    let hoursThisMonth = 0;
+    let hoursThisYear = 0;
+    
+    // Pour chaque affectation acceptée, calculer les heures
+    userAssignments
+      .filter(a => a.status === 'accepted')
+      .forEach(assignment => {
+        const event = events.find(e => e.id === assignment.eventId);
+        if (event) {
+          const eventStart = new Date(event.startDate);
+          const eventEnd = new Date(event.endDate);
+          
+          // Durée totale de l'événement
+          const duration = differenceInHours(eventEnd, eventStart);
+          hoursWorked += duration;
+          
+          // Heures ce mois
+          if (isWithinInterval(eventStart, { start: monthStart, end: monthEnd }) ||
+              isWithinInterval(eventEnd, { start: monthStart, end: monthEnd }) ||
+              (eventStart <= monthStart && eventEnd >= monthEnd)) {
+            hoursThisMonth += duration;
+          }
+          
+          // Heures cette année
+          if (isWithinInterval(eventStart, { start: yearStart, end: yearEnd }) ||
+              isWithinInterval(eventEnd, { start: yearStart, end: yearEnd }) ||
+              (eventStart <= yearStart && eventEnd >= yearEnd)) {
+            hoursThisYear += duration;
+          }
+        }
+      });
+
+    return {
+      totalAssignments,
+      acceptedAssignments,
+      declinedAssignments,
+      pendingAssignments,
+      hoursWorked,
+      hoursThisMonth,
+      hoursThisYear
+    };
+  };
+
+  // Utiliser les statistiques du service ou le calcul local
+  const stats = userStats.totalAssignments > 0 ? userStats : calculateStats();
 
   useEffect(() => {
     if (user) {
@@ -427,42 +526,125 @@ export const TechnicianProfile: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
               <TrendingUp className="h-5 w-5 mr-2 text-purple-600" />
               Statistiques
+              {statsLoading && (
+                <div className="ml-2 w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+              )}
             </h2>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <div className="font-medium text-gray-900">Contrats totaux</div>
-                    <div className="text-sm text-gray-500">Tous les temps</div>
+            {statsLoading ? (
+              <div className="space-y-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-5 h-5 bg-gray-200 rounded"></div>
+                      <div>
+                        <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                        <div className="h-3 bg-gray-200 rounded w-16"></div>
+                      </div>
+                    </div>
+                    <div className="w-8 h-6 bg-gray-200 rounded"></div>
                   </div>
-                </div>
-                <div className="text-2xl font-bold text-blue-600">12</div>
+                ))}
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Briefcase className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <div className="font-medium text-gray-900">Contrats totaux</div>
+                      <div className="text-sm text-gray-500">Tous les temps</div>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">{stats.totalAssignments}</div>
+                </div>
 
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <div>
-                    <div className="font-medium text-gray-900">Contrats acceptés</div>
-                    <div className="text-sm text-gray-500">Cette année</div>
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <div className="font-medium text-gray-900">Contrats acceptés</div>
+                      <div className="text-sm text-gray-500">Cette année</div>
+                    </div>
                   </div>
+                  <div className="text-2xl font-bold text-green-600">{stats.acceptedAssignments}</div>
                 </div>
-                <div className="text-2xl font-bold text-green-600">8</div>
-              </div>
 
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <div className="font-medium text-gray-900">Heures travaillées</div>
-                    <div className="text-sm text-gray-500">Ce mois</div>
+                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Clock className="h-5 w-5 text-yellow-600" />
+                    <div>
+                      <div className="font-medium text-gray-900">Heures travaillées</div>
+                      <div className="text-sm text-gray-500">Ce mois</div>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-yellow-600">{stats.hoursThisMonth}h</div>
+                </div>
+
+                {/* Nouvelles statistiques détaillées */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-600" />
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">En attente</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold text-orange-600">{stats.pendingAssignments}</div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">Déclinés</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold text-red-600">{stats.declinedAssignments}</div>
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-yellow-600">156h</div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="h-4 w-4 text-purple-600" />
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">Heures/an</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold text-purple-600">{stats.hoursThisYear}h</div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-indigo-600" />
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">Total heures</div>
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold text-indigo-600">{stats.hoursWorked}h</div>
+                  </div>
+                </div>
+
+                {/* Taux d'acceptation */}
+                {stats.totalAssignments > 0 && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Taux d'acceptation</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {Math.round((stats.acceptedAssignments / stats.totalAssignments) * 100)}%
+                      </span>
+                    </div>
+                    <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(stats.acceptedAssignments / stats.totalAssignments) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Informations du compte */}

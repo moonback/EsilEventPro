@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { User, Event, Assignment, Skill, EventType, EventFormData } from '../types';
 import { Database } from '../lib/supabase';
+import { differenceInHours } from 'date-fns';
 
 type Tables = Database['public']['Tables'];
 
@@ -527,4 +528,114 @@ export const userSkillsService = {
       if (insertError) throw insertError;
     }
   },
+};
+
+// Service pour les statistiques utilisateur
+export const userStatsService = {
+  async getUserStats(userId: string): Promise<{
+    totalAssignments: number;
+    acceptedAssignments: number;
+    declinedAssignments: number;
+    pendingAssignments: number;
+    hoursWorked: number;
+    hoursThisMonth: number;
+    hoursThisYear: number;
+  }> {
+    // Requête optimisée pour récupérer toutes les statistiques en une fois
+    const { data, error } = await supabase
+      .from('assignments')
+      .select(`
+        id,
+        status,
+        events (
+          id,
+          start_date,
+          end_date
+        )
+      `)
+      .eq('technician_id', userId);
+
+    if (error) throw error;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear(), 11, 31);
+
+    let totalAssignments = 0;
+    let acceptedAssignments = 0;
+    let declinedAssignments = 0;
+    let pendingAssignments = 0;
+    let hoursWorked = 0;
+    let hoursThisMonth = 0;
+    let hoursThisYear = 0;
+
+    data?.forEach(assignment => {
+      totalAssignments++;
+      
+      switch (assignment.status) {
+        case 'accepted':
+          acceptedAssignments++;
+          break;
+        case 'declined':
+          declinedAssignments++;
+          break;
+        case 'pending':
+          pendingAssignments++;
+          break;
+      }
+
+      // Calculer les heures si l'affectation est acceptée
+      if (assignment.status === 'accepted' && assignment.events) {
+        const event = assignment.events;
+        const eventStart = new Date(event.start_date);
+        const eventEnd = new Date(event.end_date);
+        
+        const duration = differenceInHours(eventEnd, eventStart);
+        hoursWorked += duration;
+        
+        // Heures ce mois
+        if (eventStart <= monthEnd && eventEnd >= monthStart) {
+          hoursThisMonth += duration;
+        }
+        
+        // Heures cette année
+        if (eventStart <= yearEnd && eventEnd >= yearStart) {
+          hoursThisYear += duration;
+        }
+      }
+    });
+
+    return {
+      totalAssignments,
+      acceptedAssignments,
+      declinedAssignments,
+      pendingAssignments,
+      hoursWorked,
+      hoursThisMonth,
+      hoursThisYear
+    };
+  },
+
+  async getUserAssignmentsWithEvents(userId: string): Promise<Array<{
+    assignment: any;
+    event: any;
+  }>> {
+    const { data, error } = await supabase
+      .from('assignments')
+      .select(`
+        *,
+        events (*)
+      `)
+      .eq('technician_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      assignment: item,
+      event: item.events
+    })) || [];
+  }
 }; 
