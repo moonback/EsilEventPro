@@ -179,7 +179,7 @@ body {
 }
 
 .dashboard-metric {
-  @apply group relative bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 overflow-hidden;
+  @apply relative bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 overflow-hidden;
 }
 
 .dashboard-metric:hover {
@@ -187,7 +187,7 @@ body {
 }
 
 .dashboard-action {
-  @apply group w-full flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all duration-200 bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50;
+  @apply w-full flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all duration-200 bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50;
 }
 
 .dashboard-action:hover {
@@ -243,12 +243,16 @@ body {
 
 /* Améliorations pour les cartes de métriques */
 .metric-card {
-  @apply group relative bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 overflow-hidden;
+  @apply relative bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 overflow-hidden;
 }
 
 .metric-card::before {
   content: '';
-  @apply absolute inset-0 bg-gradient-to-br from-transparent to-gray-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+  @apply absolute inset-0 bg-gradient-to-br from-transparent to-gray-50/30 opacity-0 transition-opacity duration-200;
+}
+
+.metric-card:hover::before {
+  @apply opacity-100;
 }
 
 /* Améliorations pour les listes */
