@@ -151,24 +151,53 @@ const PersonnelManagement: React.FC<PersonnelManagementProps> = ({ onNavigate })
 
       if (profileError) throw profileError;
 
-      // Supprimer toutes les compétences existantes
-      await supabase
-        .from('user_skills')
-        .delete()
-        .eq('user_id', selectedUser.id);
-
-      // Ajouter les nouvelles compétences
+      // Gérer les compétences de manière plus robuste
       if (formData.selectedSkills.length > 0) {
-        const skillInserts = formData.selectedSkills.map(skillId => ({
-          user_id: selectedUser.id,
-          skill_id: skillId
-        }));
-
-        const { error: skillsError } = await supabase
+        // Obtenir les compétences actuelles de l'utilisateur
+        const { data: currentSkills } = await supabase
           .from('user_skills')
-          .insert(skillInserts);
+          .select('skill_id')
+          .eq('user_id', selectedUser.id);
 
-        if (skillsError) throw skillsError;
+        const currentSkillIds = currentSkills?.map(s => s.skill_id) || [];
+        const newSkillIds = formData.selectedSkills;
+
+        // Compétences à supprimer (présentes actuellement mais pas dans la nouvelle liste)
+        const skillsToRemove = currentSkillIds.filter(id => !newSkillIds.includes(id));
+        
+        // Compétences à ajouter (nouvelles mais pas présentes actuellement)
+        const skillsToAdd = newSkillIds.filter(id => !currentSkillIds.includes(id));
+
+        // Supprimer les compétences qui ne sont plus sélectionnées
+        if (skillsToRemove.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('user_skills')
+            .delete()
+            .eq('user_id', selectedUser.id)
+            .in('skill_id', skillsToRemove);
+
+          if (deleteError) throw deleteError;
+        }
+
+        // Ajouter les nouvelles compétences
+        if (skillsToAdd.length > 0) {
+          const skillInserts = skillsToAdd.map(skillId => ({
+            user_id: selectedUser.id,
+            skill_id: skillId
+          }));
+
+          const { error: insertError } = await supabase
+            .from('user_skills')
+            .insert(skillInserts);
+
+          if (insertError) throw insertError;
+        }
+      } else {
+        // Si aucune compétence sélectionnée, supprimer toutes les compétences
+        await supabase
+          .from('user_skills')
+          .delete()
+          .eq('user_id', selectedUser.id);
       }
 
       setShowEditModal(false);
