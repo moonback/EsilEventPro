@@ -7,6 +7,7 @@ import { format, isPast, isToday, isTomorrow, startOfWeek, endOfWeek, eachDayOfI
 import { fr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import '../styles/technician-calendar.css';
+import { TechnicianFullScreenCalendar } from '../components/Calendar/TechnicianFullScreenCalendar';
 
 export const TechnicianCalendar: React.FC = () => {
   const { events, assignments, users, updateAssignment, deleteEvent } = useAppStore();
@@ -17,6 +18,7 @@ export const TechnicianCalendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Affectations pour ce technicien
   const myAssignments = assignments.filter(a => a.technicianId === user?.id);
@@ -86,6 +88,10 @@ export const TechnicianCalendar: React.FC = () => {
       console.error('Erreur lors de la suppression de l\'événement:', error);
       toast.error('Erreur lors de la suppression de l\'événement');
     }
+  };
+
+  const handleToggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
   };
 
   const getEventStatus = (event: Event & { assignment?: Assignment }) => {
@@ -315,146 +321,15 @@ export const TechnicianCalendar: React.FC = () => {
         </div>
       </div>
 
-      {/* Contenu du calendrier */}
-      {viewMode === 'month' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* En-têtes des jours */}
-          <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
-            {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-              <div key={day} className="p-3 text-center text-sm font-medium text-gray-700">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Grille du calendrier */}
-          <div className="grid grid-cols-7">
-            {monthDays.map((day, index) => {
-              const dayEvents = getEventsForDate(day);
-              const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-              const isToday = isSameDay(day, new Date());
-
-              return (
-                <div
-                  key={index}
-                  className={`min-h-[120px] p-2 border-r border-b border-gray-200 ${
-                    !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
-                  } ${isToday ? 'bg-blue-50' : ''}`}
-                >
-                  <div className={`text-sm font-medium mb-1 ${
-                    !isCurrentMonth ? 'text-gray-400' : isToday ? 'text-blue-600' : 'text-gray-900'
-                  }`}>
-                    {format(day, 'd')}
-                  </div>
-                  
-                  <div className="space-y-1">
-                    {dayEvents.map(event => {
-                      const status = getEventStatus(event);
-                      const assignmentStatus = getAssignmentStatus(event.assignment);
-                      const StatusIcon = status.icon;
-                      const AssignmentStatusIcon = assignmentStatus.icon;
-
-                      return (
-                        <div
-                          key={event.id}
-                          className={`p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                            assignmentStatus.color
-                          } hover:opacity-80`}
-                          onClick={() => setSelectedDate(day)}
-                        >
-                          <div className="flex items-center space-x-1 mb-1">
-                            <StatusIcon className="h-3 w-3" />
-                            <span className="font-medium truncate">{event.title}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <AssignmentStatusIcon className="h-3 w-3" />
-                            <span className="truncate">{assignmentStatus.label}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {viewMode === 'week' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {/* En-têtes des jours */}
-          <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
-            {weekDays.map(day => (
-              <div key={day.toISOString()} className="p-3 text-center">
-                <div className="text-sm font-medium text-gray-700">
-                  {format(day, 'EEE', { locale: fr })}
-                </div>
-                <div className={`text-lg font-bold ${
-                  isToday(day) ? 'text-blue-600' : 'text-gray-900'
-                }`}>
-                  {format(day, 'd')}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Grille de la semaine */}
-          <div className="grid grid-cols-7">
-            {weekDays.map(day => {
-              const dayEvents = getEventsForDate(day);
-              const isToday = isSameDay(day, new Date());
-
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={`min-h-[200px] p-3 border-r border-gray-200 ${
-                    isToday ? 'bg-blue-50' : 'bg-white'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    {dayEvents.map(event => {
-                      const status = getEventStatus(event);
-                      const assignmentStatus = getAssignmentStatus(event.assignment);
-                      const StatusIcon = status.icon;
-                      const AssignmentStatusIcon = assignmentStatus.icon;
-
-                      return (
-                        <div
-                          key={event.id}
-                          className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                            assignmentStatus.color
-                          } hover:opacity-80`}
-                          onClick={() => setSelectedDate(day)}
-                        >
-                          <div className="flex items-center space-x-2 mb-2">
-                            <StatusIcon className="h-4 w-4" />
-                            <span className="font-medium text-sm">{event.title}</span>
-                          </div>
-                          <div className="space-y-1 text-xs">
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{format(new Date(event.startDate), 'HH:mm')} - {format(new Date(event.endDate), 'HH:mm')}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <MapPin className="h-3 w-3" />
-                              <span className="truncate">{event.location}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <AssignmentStatusIcon className="h-3 w-3" />
-                              <span>{assignmentStatus.label}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Calendrier avec mode plein écran */}
+      <TechnicianFullScreenCalendar
+        events={filteredEvents}
+        onAcceptAssignment={handleAcceptAssignment}
+        onDeclineAssignment={handleDeclineAssignment}
+        onDeleteEvent={handleDeleteEvent}
+        isFullScreen={isFullScreen}
+        onToggleFullScreen={handleToggleFullScreen}
+      />
 
       {viewMode === 'list' && (
         <div className="space-y-4">
