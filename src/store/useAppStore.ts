@@ -11,6 +11,7 @@ interface AppStore extends AppState {
   
   // Events
   addEvent: (event: EventFormData & { createdBy: string }) => Promise<void>;
+  addEventsBulk: (events: Array<EventFormData & { createdBy: string }>) => Promise<void>;
   updateEvent: (id: string, event: Partial<EventFormData>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   updateEventStatus: (id: string, status: 'draft' | 'published' | 'confirmed' | 'completed' | 'cancelled') => Promise<void>;
@@ -73,6 +74,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set(state => ({ events: [...state.events, newEvent] }));
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'événement:', error);
+      throw error;
+    }
+  },
+
+  addEventsBulk: async (eventsData) => {
+    try {
+      const newEvents = await eventService.createBulk(eventsData);
+      set(state => ({ events: [...state.events, ...newEvents] }));
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout en lot des événements:', error);
       throw error;
     }
   },

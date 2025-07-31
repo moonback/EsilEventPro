@@ -7,6 +7,7 @@ import { Event, EventFormData } from '../types';
 import PersonnelManagement from './PersonnelManagement';
 import SkillsManagement from './SkillsManagement';
 import AssignmentsManagement from './AssignmentsManagement';
+import { SalaryManagement } from './SalaryManagement';
 import { DashboardHeader } from '../components/Dashboard/DashboardHeader';
 import { MetricsGrid } from '../components/Dashboard/MetricsGrid';
 import { CalendarSection } from '../components/Dashboard/CalendarSection';
@@ -20,7 +21,7 @@ export const AdminDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'personnel' | 'skills' | 'assignments'>('dashboard');
+  const [currentPage, setCurrentPage] = useState<'dashboard' | 'personnel' | 'skills' | 'assignments' | 'salaries'>('dashboard');
 
   // Statistiques avancées
   const stats = {
@@ -141,6 +142,10 @@ export const AdminDashboard: React.FC = () => {
 
   if (currentPage === 'assignments') {
     return <AssignmentsManagement onNavigate={handleNavigate} />;
+  }
+
+  if (currentPage === 'salaries') {
+    return <SalaryManagement onNavigate={handleNavigate} />;
   }
 
   return (

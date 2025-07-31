@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, Users, ChevronRight } from 'lucide-react';
 import { Event } from '../../types';
-import { EventCalendar } from '../Calendar/EventCalendar';
+import { FullScreenCalendar } from '../Calendar/FullScreenCalendar';
 
 interface CalendarSectionProps {
   weeklyEvents: number;
@@ -16,6 +16,12 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
   onSelectSlot,
   onDeleteEvent,
 }) => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const handleToggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Header compact */}
@@ -44,13 +50,14 @@ export const CalendarSection: React.FC<CalendarSectionProps> = ({
         </div>
       </div>
       
-      {/* Calendrier compact */}
+      {/* Calendrier avec mode plein écran */}
       <div className="p-4">
-        <EventCalendar
+        <FullScreenCalendar
           onSelectEvent={onSelectEvent}
           onSelectSlot={onSelectSlot}
           onDeleteEvent={onDeleteEvent}
-          height={500}
+          isFullScreen={isFullScreen}
+          onToggleFullScreen={handleToggleFullScreen}
         />
       </div>
     </div>

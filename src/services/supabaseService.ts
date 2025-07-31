@@ -433,6 +433,58 @@ export const eventService = {
     const { error } = await supabase.from('events').delete().eq('id', id);
     if (error) throw error;
   },
+
+  async createBulk(eventsData: Array<EventFormData & { createdBy: string }>): Promise<Event[]> {
+    const createdEvents: Event[] = [];
+
+    for (const eventData of eventsData) {
+      try {
+        // Créer l'événement
+        const { data: event, error: eventError } = await supabase
+          .from('events')
+          .insert({
+            title: eventData.title,
+            description: eventData.description,
+            start_date: eventData.startDate.toISOString(),
+            end_date: eventData.endDate.toISOString(),
+            location: eventData.location,
+            type_id: eventData.typeId,
+            status: 'draft',
+            created_by: eventData.createdBy,
+          })
+          .select()
+          .single();
+
+        if (eventError) {
+          console.error(`Erreur lors de la création de l'événement "${eventData.title}":`, eventError);
+          continue; // Continuer avec les autres événements
+        }
+
+        // Ajouter les exigences en techniciens si présentes
+        if (eventData.requiredTechnicians.length > 0) {
+          const requirementInserts = eventData.requiredTechnicians.map(req => ({
+            event_id: event.id,
+            skill_id: req.skillId,
+            count: req.count,
+            level: req.level,
+          }));
+
+          await supabase.from('event_requirements').insert(requirementInserts);
+        }
+
+        // Récupérer l'événement complet avec les relations
+        const completeEvent = await this.getById(event.id);
+        if (completeEvent) {
+          createdEvents.push(completeEvent);
+        }
+      } catch (error) {
+        console.error(`Erreur lors de la création de l'événement "${eventData.title}":`, error);
+        // Continuer avec les autres événements
+      }
+    }
+
+    return createdEvents;
+  },
 };
 
 // Service pour les affectations
