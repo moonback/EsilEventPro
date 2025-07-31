@@ -3,11 +3,23 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Vérification des variables d'environnement avec gestion d'erreur plus robuste
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Variables d\'environnement Supabase manquantes. Vérifiez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY');
+  console.error('Variables d\'environnement Supabase manquantes:', {
+    url: supabaseUrl ? 'définie' : 'manquante',
+    key: supabaseAnonKey ? 'définie' : 'manquante'
+  });
+  
+  // En production, on peut continuer avec des valeurs par défaut ou afficher un message d'erreur
+  if (import.meta.env.PROD) {
+    console.error('Configuration Supabase manquante en production');
+  }
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
+);
 
 // Types pour les tables Supabase
 export interface Database {

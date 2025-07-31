@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -15,19 +15,38 @@ import { TechnicianCalendar } from './pages/TechnicianCalendar';
 import { TechnicianProfile } from './pages/TechnicianProfile';
 import { ToastContainer } from './components/Toast';
 import { RegisterPage } from './pages/RegisterPage';
+import { LoginForm } from './components/Auth/LoginForm';
+import { LoadingScreen } from './components/LoadingScreen';
 
 function App() {
-  const { isAuthenticated, user, initializeAuth } = useAuthStore();
+  const { isAuthenticated, user, initializeAuth, isLoading } = useAuthStore();
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    initializeAuth();
+    const init = async () => {
+      try {
+        await initializeAuth();
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    
+    init();
   }, [initializeAuth]);
+
+  // Afficher l'écran de chargement pendant l'initialisation
+  if (isInitializing) {
+    return <LoadingScreen />;
+  }
 
   if (!isAuthenticated) {
     return (
       <ErrorBoundary>
         <Router>
           <Routes>
+            <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>

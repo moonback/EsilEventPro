@@ -106,9 +106,18 @@ export const useAuthStore = create<AuthStore>()(
               user,
               isAuthenticated: true,
             });
+          } else {
+            set({
+              user: null,
+              isAuthenticated: false,
+            });
           }
         } catch (error) {
           console.error('Erreur lors de l\'initialisation de l\'auth:', error);
+          set({
+            user: null,
+            isAuthenticated: false,
+          });
         }
       },
     }),
