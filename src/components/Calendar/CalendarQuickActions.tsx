@@ -3,7 +3,6 @@ import {
   Download, 
   Eye, 
   EyeOff, 
-  Map, 
   Calendar,
   Clock,
   Users
@@ -12,17 +11,13 @@ import {
 interface CalendarQuickActionsProps {
   onExport?: () => void;
   onToggleDetails: () => void;
-  onToggleMiniMap: () => void;
   showDetails: boolean;
-  showMiniMap: boolean;
 }
 
 export const CalendarQuickActions: React.FC<CalendarQuickActionsProps> = ({
   onExport,
   onToggleDetails,
-  onToggleMiniMap,
   showDetails,
-  showMiniMap,
 }) => {
   const actions = [
     {
@@ -32,14 +27,6 @@ export const CalendarQuickActions: React.FC<CalendarQuickActionsProps> = ({
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
       hoverColor: 'hover:bg-blue-100',
-    },
-    {
-      icon: Map,
-      label: showMiniMap ? 'Masquer mini-carte' : 'Afficher mini-carte',
-      onClick: onToggleMiniMap,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      hoverColor: 'hover:bg-green-100',
     },
     {
       icon: Download,
