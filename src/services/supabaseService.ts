@@ -264,6 +264,53 @@ export const eventService = {
 
     if (error) throw error;
 
+    // Récupérer toutes les données de tarification en une seule requête
+    const { data: pricingData, error: pricingError } = await supabase
+      .from('mission_pricing')
+      .select('*');
+
+    if (pricingError) {
+      console.error('Erreur lors de la récupération des tarifications:', pricingError);
+    }
+
+    // Récupérer toutes les sélections de techniciens en une seule requête
+    const { data: targetedData, error: targetedError } = await supabase
+      .from('targeted_technicians')
+      .select('*');
+
+    if (targetedError) {
+      console.error('Erreur lors de la récupération des techniciens ciblés:', targetedError);
+    }
+
+    // Organiser les données par événement
+    const pricingByEvent = new Map();
+    pricingData?.forEach((pricing: any) => {
+      pricingByEvent.set(pricing.event_id, {
+        id: pricing.id,
+        eventId: pricing.event_id,
+        basePrice: pricing.base_price,
+        pricePerHour: pricing.price_per_hour,
+        bonusPercentage: pricing.bonus_percentage,
+        createdAt: new Date(pricing.created_at),
+        updatedAt: new Date(pricing.updated_at),
+      });
+    });
+
+    const targetedByEvent = new Map();
+    targetedData?.forEach((targeted: any) => {
+      if (!targetedByEvent.has(targeted.event_id)) {
+        targetedByEvent.set(targeted.event_id, []);
+      }
+      targetedByEvent.get(targeted.event_id).push({
+        id: targeted.id,
+        eventId: targeted.event_id,
+        technicianId: targeted.technician_id,
+        selectedByAdmin: targeted.selected_by_admin,
+        selectionReason: targeted.selection_reason,
+        createdAt: new Date(targeted.created_at),
+      });
+    });
+
     return data?.map(event => ({
       id: event.id,
       title: event.title,
@@ -287,6 +334,8 @@ export const eventService = {
       createdBy: event.created_by,
       createdAt: new Date(event.created_at),
       updatedAt: new Date(event.updated_at),
+      pricing: pricingByEvent.get(event.id),
+      targetedTechnicians: targetedByEvent.get(event.id) || [],
     })) || [];
   },
 
@@ -303,6 +352,22 @@ export const eventService = {
 
     if (error) throw error;
     if (!data) return null;
+
+    // Récupérer les données de tarification
+    let pricing: MissionPricing | undefined = undefined;
+    try {
+      pricing = await missionPricingService.getByEventId(id) || undefined;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la tarification:', error);
+    }
+
+    // Récupérer les techniciens ciblés
+    let targetedTechnicians: TargetedTechnician[] = [];
+    try {
+      targetedTechnicians = await targetedTechniciansService.getByEventId(id);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des techniciens ciblés:', error);
+    }
 
     return {
       id: data.id,
@@ -327,6 +392,8 @@ export const eventService = {
       createdBy: data.created_by,
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
+      pricing,
+      targetedTechnicians,
     };
   },
 
@@ -428,6 +495,50 @@ export const eventService = {
           level: req.level,
         }));
         await supabase.from('event_requirements').insert(requirementInserts);
+      }
+    }
+
+    // Mettre à jour le forfait de rémunération si fourni
+    if (eventData.pricing) {
+      try {
+        // Vérifier si un forfait existe déjà pour cet événement
+        const existingPricing = await missionPricingService.getByEventId(id);
+        if (existingPricing) {
+          // Mettre à jour le forfait existant
+          await missionPricingService.update(id, {
+            basePrice: eventData.pricing.basePrice,
+            pricePerHour: eventData.pricing.pricePerHour,
+            bonusPercentage: eventData.pricing.bonusPercentage,
+          });
+        } else {
+          // Créer un nouveau forfait
+          await missionPricingService.create({
+            eventId: id,
+            basePrice: eventData.pricing.basePrice,
+            pricePerHour: eventData.pricing.pricePerHour,
+            bonusPercentage: eventData.pricing.bonusPercentage,
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du forfait de rémunération:', error);
+        // Ne pas faire échouer la mise à jour de l'événement pour un problème de tarification
+      }
+    }
+
+    // Mettre à jour les sélections ciblées de techniciens si fournies
+    if (eventData.targetedTechnicians !== undefined) {
+      // Supprimer les anciennes sélections
+      await targetedTechniciansService.deleteByEventId(id);
+      
+      // Ajouter les nouvelles sélections
+      if (eventData.targetedTechnicians.length > 0) {
+        const selectionInserts = eventData.targetedTechnicians.map(technicianId => ({
+          eventId: id,
+          technicianId,
+          selectedByAdmin: true,
+          selectionReason: '',
+        }));
+        await targetedTechniciansService.createMultiple(selectionInserts);
       }
     }
 

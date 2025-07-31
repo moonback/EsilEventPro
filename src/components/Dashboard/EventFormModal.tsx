@@ -68,6 +68,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               location: selectedEvent.location,
               typeId: selectedEvent.type.id,
               requiredTechnicians: selectedEvent.requiredTechnicians,
+              pricing: selectedEvent.pricing,
+              targetedTechnicians: selectedEvent.targetedTechnicians,
             } : undefined}
             onSubmit={onSubmit}
             onCancel={handleClose}

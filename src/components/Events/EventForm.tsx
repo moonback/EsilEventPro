@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Calendar, Clock, MapPin, Users, Save, X, Euro, Target } from 'lucide-react';
 import { EventFormData, TechnicianRequirement } from '../../types';
@@ -14,6 +14,13 @@ interface EventFormProps {
   onCancel: () => void;
   isLoading?: boolean;
 }
+
+// Fonction pour formater une date pour les champs datetime-local
+const formatDateForInput = (date: Date | string | undefined): string => {
+  if (!date) return '';
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toISOString().slice(0, 16); // Format YYYY-MM-DDTHH:MM
+};
 
 export const EventForm: React.FC<EventFormProps> = ({
   initialData,
@@ -40,18 +47,43 @@ export const EventForm: React.FC<EventFormProps> = ({
     control,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<EventFormData>({
     defaultValues: {
-      title: initialData?.title || '',
-      description: initialData?.description || '',
-      startDate: initialData?.startDate || new Date(),
-      endDate: initialData?.endDate || new Date(),
-      location: initialData?.location || '',
-      typeId: initialData?.typeId || eventTypes[0]?.id || '',
-      requiredTechnicians: initialData?.requiredTechnicians || [],
+      title: '',
+      description: '',
+      startDate: new Date(),
+      endDate: new Date(),
+      location: '',
+      typeId: eventTypes[0]?.id || '',
+      requiredTechnicians: [],
     },
   });
+
+  // Mettre à jour les valeurs du formulaire quand initialData change
+  useEffect(() => {
+    if (initialData) {
+      reset({
+        title: initialData.title || '',
+        description: initialData.description || '',
+        startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
+        endDate: initialData.endDate ? new Date(initialData.endDate) : new Date(),
+        location: initialData.location || '',
+        typeId: initialData.typeId || eventTypes[0]?.id || '',
+        requiredTechnicians: initialData.requiredTechnicians || [],
+      });
+
+      // Mettre à jour les autres états
+      setPricing({
+        basePrice: initialData.pricing?.basePrice || 50,
+        pricePerHour: initialData.pricing?.pricePerHour || 25,
+        bonusPercentage: initialData.pricing?.bonusPercentage || 10,
+      });
+
+      setSelectedTechnicians(initialData.targetedTechnicians || []);
+    }
+  }, [initialData, eventTypes, reset]);
 
   const requiredTechnicians = watch('requiredTechnicians');
   const formData = watch();
@@ -201,11 +233,22 @@ export const EventForm: React.FC<EventFormProps> = ({
             <Calendar className="inline h-4 w-4 mr-1" />
             Date et heure de début
           </label>
-          <input
-            type="datetime-local"
-            {...register('startDate', { required: 'Date de début requise' })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          <Controller
+            name="startDate"
+            control={control}
+            rules={{ required: 'Date de début requise' }}
+            render={({ field }) => (
+              <input
+                type="datetime-local"
+                value={formatDateForInput(field.value)}
+                onChange={(e) => field.onChange(new Date(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            )}
           />
+          {errors.startDate && (
+            <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+          )}
         </div>
 
         <div>
@@ -213,11 +256,22 @@ export const EventForm: React.FC<EventFormProps> = ({
             <Clock className="inline h-4 w-4 mr-1" />
             Date et heure de fin
           </label>
-          <input
-            type="datetime-local"
-            {...register('endDate', { required: 'Date de fin requise' })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          <Controller
+            name="endDate"
+            control={control}
+            rules={{ required: 'Date de fin requise' }}
+            render={({ field }) => (
+              <input
+                type="datetime-local"
+                value={formatDateForInput(field.value)}
+                onChange={(e) => field.onChange(new Date(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            )}
           />
+          {errors.endDate && (
+            <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
+          )}
         </div>
       </div>
 
@@ -367,7 +421,10 @@ export const EventForm: React.FC<EventFormProps> = ({
                 disabled={isLoading}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {isLoading ? 'Création...' : 'Créer l\'événement'}
+                {isLoading 
+                  ? (initialData ? 'Modification...' : 'Création...') 
+                  : (initialData ? 'Modifier l\'événement' : 'Créer l\'événement')
+                }
               </button>
             )}
           </div>
