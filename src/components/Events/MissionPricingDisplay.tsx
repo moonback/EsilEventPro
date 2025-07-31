@@ -1,6 +1,8 @@
-import React from 'react';
-import { Euro, Clock, TrendingUp, Calculator, Eye } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Euro, Clock, TrendingUp, Calculator, Eye, AlertCircle } from 'lucide-react';
 import { MissionPricing, Event } from '../../types';
+import { missionPricingService } from '../../services/supabaseService';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface MissionPricingDisplayProps {
   pricing: MissionPricing;
@@ -15,10 +17,15 @@ export const MissionPricingDisplay: React.FC<MissionPricingDisplayProps> = ({
   technicianLevel = 'intermediate',
   showDetails = true,
 }) => {
+  const { user } = useAuthStore();
+  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   // Calculer la durée en heures
   const durationHours = (new Date(event.endDate).getTime() - new Date(event.startDate).getTime()) / (1000 * 60 * 60);
   
-  // Calculer le prix de base
+  // Calculer le prix de base (méthode locale)
   const basePrice = pricing.basePrice;
   const hourlyPrice = pricing.pricePerHour * durationHours;
   const totalPrice = basePrice + hourlyPrice;
@@ -26,7 +33,34 @@ export const MissionPricingDisplay: React.FC<MissionPricingDisplayProps> = ({
   // Appliquer le bonus pour les experts
   const hasExpertBonus = technicianLevel === 'expert' && pricing.bonusPercentage > 0;
   const bonusAmount = hasExpertBonus ? totalPrice * (pricing.bonusPercentage / 100) : 0;
-  const finalPrice = totalPrice + bonusAmount;
+  const localFinalPrice = totalPrice + bonusAmount;
+
+  // Récupérer le prix calculé par la fonction SQL
+  useEffect(() => {
+    const fetchCalculatedPrice = async () => {
+      if (!user || !event.id) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const price = await missionPricingService.calculateMissionPrice(event.id, user.id);
+        setCalculatedPrice(price);
+      } catch (err) {
+        console.error('Erreur lors du calcul du prix:', err);
+        setError('Erreur lors du calcul du prix');
+        setCalculatedPrice(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCalculatedPrice();
+  }, [event.id, user?.id]);
+
+  // Utiliser le prix calculé par SQL ou le prix local
+  const finalPrice = calculatedPrice !== null ? calculatedPrice : localFinalPrice;
+  const priceSource = calculatedPrice !== null ? 'SQL' : 'local';
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -41,11 +75,26 @@ export const MissionPricingDisplay: React.FC<MissionPricingDisplayProps> = ({
       <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-green-800">Rémunération totale</span>
-          <span className="text-2xl font-bold text-green-600">{finalPrice.toFixed(2)}€</span>
+          <div className="text-right">
+            {isLoading ? (
+              <span className="text-lg text-gray-500">Calcul en cours...</span>
+            ) : (
+              <span className="text-2xl font-bold text-green-600">{finalPrice.toFixed(2)}€</span>
+            )}
+          </div>
         </div>
-        {hasExpertBonus && (
+        
+        {error && (
+          <div className="mt-2 flex items-center text-xs text-red-600">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            {error}
+          </div>
+        )}
+        
+        {!isLoading && !error && (
           <div className="mt-2 text-xs text-green-600">
-            Inclut un bonus de {pricing.bonusPercentage}% pour votre niveau expert
+            {priceSource === 'SQL' ? 'Prix calculé par le système' : 'Prix estimé localement'}
+            {hasExpertBonus && ` • Inclut un bonus de ${pricing.bonusPercentage}% pour votre niveau expert`}
           </div>
         )}
       </div>
