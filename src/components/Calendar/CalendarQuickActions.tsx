@@ -4,9 +4,6 @@ import {
   Eye, 
   EyeOff, 
   Map, 
-  Settings,
-  Share2,
-  Printer,
   Calendar,
   Clock,
   Users
@@ -51,44 +48,6 @@ export const CalendarQuickActions: React.FC<CalendarQuickActionsProps> = ({
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
       hoverColor: 'hover:bg-purple-100',
-    },
-    {
-      icon: Share2,
-      label: 'Partager',
-      onClick: () => {
-        // Action de partage
-        if (navigator.share) {
-          navigator.share({
-            title: 'Calendrier des événements',
-            text: 'Consultez notre calendrier d\'événements',
-            url: window.location.href,
-          });
-        } else {
-          // Fallback pour copier le lien
-          navigator.clipboard.writeText(window.location.href);
-        }
-      },
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      hoverColor: 'hover:bg-orange-100',
-    },
-    {
-      icon: Printer,
-      label: 'Imprimer',
-      onClick: () => window.print(),
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50',
-      hoverColor: 'hover:bg-gray-100',
-    },
-    {
-      icon: Settings,
-      label: 'Paramètres',
-      onClick: () => {
-        // Action des paramètres
-      },
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50',
-      hoverColor: 'hover:bg-gray-100',
     },
   ];
 

@@ -234,7 +234,7 @@ export const AdminDashboard: React.FC = () => {
 
     const activeTechnicians = users.filter(u => 
       u.role === 'technician' && 
-      assignments.some(a => a.userId === u.id && a.status === 'accepted')
+      assignments.some(a => a.technicianId === u.id && a.status === 'accepted')
     ).length;
 
     return {
@@ -274,7 +274,7 @@ export const AdminDashboard: React.FC = () => {
       });
     }
     
-    if (stats.eventCompletionRate < 80) {
+    if (Number(stats.eventCompletionRate) < 80) {
       alertsList.push({
         type: 'error',
         title: 'Taux de complétion faible',
