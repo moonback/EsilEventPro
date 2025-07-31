@@ -1,5 +1,5 @@
 import React from 'react';
-import { LucideIcon, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
 interface MetricsCardProps {
   title: string;
@@ -7,10 +7,12 @@ interface MetricsCardProps {
   icon: LucideIcon;
   iconColor: string;
   iconBgColor: string;
-  trend: 'up' | 'down';
+  trend: 'up' | 'down' | 'neutral';
   trendValue: string;
   trendColor: string;
   subtitle?: string;
+  onClick?: () => void;
+  loading?: boolean;
 }
 
 export const MetricsCard: React.FC<MetricsCardProps> = ({
@@ -23,45 +25,98 @@ export const MetricsCard: React.FC<MetricsCardProps> = ({
   trendValue,
   trendColor,
   subtitle,
+  onClick,
+  loading = false,
 }) => {
-  const TrendIcon = trend === 'up' ? TrendingUp : TrendingDown;
+  const getTrendIcon = () => {
+    if (trend === 'up') return '↗';
+    if (trend === 'down') return '↘';
+    return '→';
+  };
+
+  const getTrendText = () => {
+    if (trend === 'up') return 'Augmentation';
+    if (trend === 'down') return 'Diminution';
+    return 'Stable';
+  };
 
   return (
-    <div className="group relative bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all duration-200 overflow-hidden">
-      {/* Gradient overlay au hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-gray-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+    <div 
+      className={`dashboard-metric group cursor-pointer transition-all duration-300 ${
+        onClick ? 'hover:scale-105 hover:shadow-lg' : ''
+      }`}
+      onClick={onClick}
+    >
+      {/* Fond décoratif */}
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       
-      <div className="relative flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-gray-600 truncate">{title}</p>
-            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${trendColor} ${trend === 'up' ? 'bg-green-50' : 'bg-red-50'}`}>
-              <TrendIcon className="h-3 w-3" />
-              <span className="text-xs">{trendValue}</span>
-            </div>
+      {/* Contenu principal */}
+      <div className="relative z-10">
+        {/* En-tête avec icône */}
+        <div className="flex items-center justify-between mb-4">
+          <div 
+            className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300 group-hover:scale-110"
+            style={{ backgroundColor: iconBgColor }}
+          >
+            <Icon 
+              className="w-6 h-6 transition-all duration-300 group-hover:rotate-12" 
+              style={{ color: iconColor }}
+            />
           </div>
           
-          <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
-          
-          {subtitle && (
-            <p className="text-xs text-gray-500 truncate">{subtitle}</p>
+          {/* Indicateur de tendance */}
+          <div className="flex items-center space-x-1">
+            <span 
+              className="text-lg font-bold transition-all duration-300 group-hover:scale-110"
+              style={{ color: trendColor }}
+            >
+              {getTrendIcon()}
+            </span>
+          </div>
+        </div>
+
+        {/* Valeur principale */}
+        <div className="mb-2">
+          {loading ? (
+            <div className="skeleton h-8 w-24 rounded-md mb-2" />
+          ) : (
+            <div className="text-3xl font-bold text-secondary-900 group-hover:text-primary-700 transition-colors duration-300">
+              {value}
+            </div>
           )}
         </div>
-        
-        <div className={`w-12 h-12 ${iconBgColor} rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200 ml-3 flex-shrink-0`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+
+        {/* Titre */}
+        <div className="mb-1">
+          <h3 className="text-sm font-semibold text-secondary-700 group-hover:text-secondary-900 transition-colors duration-300">
+            {title}
+          </h3>
+        </div>
+
+        {/* Sous-titre et tendance */}
+        <div className="flex items-center justify-between">
+          {subtitle && (
+            <p className="text-xs text-secondary-500 group-hover:text-secondary-600 transition-colors duration-300">
+              {subtitle}
+            </p>
+          )}
+          
+          <div className="flex items-center space-x-1">
+            <span 
+              className="text-xs font-medium transition-all duration-300"
+              style={{ color: trendColor }}
+            >
+              {trendValue}
+            </span>
+            <span className="text-xs text-secondary-400">
+              {getTrendText()}
+            </span>
+          </div>
         </div>
       </div>
-      
-      {/* Indicateur de progression compact */}
-      <div className="relative mt-3">
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
-          <div 
-            className={`h-1.5 rounded-full transition-all duration-300 ${trend === 'up' ? 'bg-green-500' : 'bg-red-500'}`}
-            style={{ width: trend === 'up' ? '75%' : '45%' }}
-          ></div>
-        </div>
-      </div>
+
+      {/* Effet de brillance au survol */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%]" />
     </div>
   );
 }; 

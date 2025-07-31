@@ -1,16 +1,13 @@
-import React from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { Calendar, Clock, MapPin, Users, Save, X } from 'lucide-react';
-import { EventFormData, TechnicianRequirement } from '../../types';
-import { useAppStore } from '../../store/useAppStore';
-import { useAuthStore } from '../../store/useAuthStore';
-import { format } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { EventFormData, TechnicianRequirement, EventType } from '../../types';
+import { Calendar, MapPin, Clock, Users, Plus, X, Trash2 } from 'lucide-react';
 
 interface EventFormProps {
   initialData?: Partial<EventFormData>;
   onSubmit: (data: EventFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  eventTypes: EventType[];
 }
 
 export const EventForm: React.FC<EventFormProps> = ({
@@ -18,284 +15,342 @@ export const EventForm: React.FC<EventFormProps> = ({
   onSubmit,
   onCancel,
   isLoading = false,
+  eventTypes,
 }) => {
-  const { eventTypes, skills } = useAppStore();
-  const { user } = useAuthStore();
-
-  const {
-    register,
-    handleSubmit,
-    control,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<EventFormData>({
-    defaultValues: {
-      title: initialData?.title || '',
-      description: initialData?.description || '',
-      startDate: initialData?.startDate || new Date(),
-      endDate: initialData?.endDate || new Date(),
-      location: initialData?.location || '',
-      typeId: initialData?.typeId || eventTypes[0]?.id || '',
-      requiredTechnicians: initialData?.requiredTechnicians || [],
-    },
+  const [formData, setFormData] = useState<EventFormData>({
+    title: '',
+    description: '',
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // +2h par défaut
+    location: '',
+    typeId: '',
+    requiredTechnicians: [],
+    ...initialData,
   });
 
-  const requiredTechnicians = watch('requiredTechnicians');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({ ...prev, ...initialData }));
+    }
+  }, [initialData]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Le titre est requis';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'La description est requise';
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = 'Le lieu est requis';
+    }
+
+    if (!formData.typeId) {
+      newErrors.typeId = 'Le type d\'événement est requis';
+    }
+
+    if (formData.startDate >= formData.endDate) {
+      newErrors.endDate = 'La date de fin doit être après la date de début';
+    }
+
+    if (formData.requiredTechnicians.length === 0) {
+      newErrors.requiredTechnicians = 'Au moins un technicien est requis';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      onSubmit(formData);
+    }
+  };
+
+  const handleInputChange = (field: keyof EventFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
 
   const addTechnicianRequirement = () => {
-    const current = requiredTechnicians || [];
-    setValue('requiredTechnicians', [
-      ...current,
-      { skillId: skills[0]?.id || '', count: 1, level: 'intermediate' },
-    ]);
+    const newRequirement: TechnicianRequirement = {
+      skillId: '',
+      count: 1,
+      level: 'beginner',
+    };
+    setFormData(prev => ({
+      ...prev,
+      requiredTechnicians: [...prev.requiredTechnicians, newRequirement],
+    }));
   };
 
   const removeTechnicianRequirement = (index: number) => {
-    const current = requiredTechnicians || [];
-    setValue('requiredTechnicians', current.filter((_, i) => i !== index));
+    setFormData(prev => ({
+      ...prev,
+      requiredTechnicians: prev.requiredTechnicians.filter((_, i) => i !== index),
+    }));
   };
 
   const updateTechnicianRequirement = (index: number, field: keyof TechnicianRequirement, value: any) => {
-    const current = requiredTechnicians || [];
-    const updated = [...current];
-    updated[index] = { ...updated[index], [field]: value };
-    setValue('requiredTechnicians', updated);
+    setFormData(prev => ({
+      ...prev,
+      requiredTechnicians: prev.requiredTechnicians.map((req, i) =>
+        i === index ? { ...req, [field]: value } : req
+      ),
+    }));
   };
 
+  const selectedEventType = eventTypes.find(t => t.id === formData.typeId);
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">
-          {initialData ? 'Modifier l\'événement' : 'Nouvel événement'}
-        </h3>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
-        {/* Informations générales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Titre de l'événement
-            </label>
-            <input
-              {...register('title', { required: 'Titre requis' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Nom de l'événement"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-            )}
+    <div className="max-w-4xl mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Informations de base */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-xl font-semibold text-secondary-900">Informations de base</h2>
+            <p className="text-sm text-secondary-600 mt-1">Définissez les détails principaux de votre événement</p>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Type d'événement
-            </label>
-            <select
-              {...register('typeId', { required: 'Type requis' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {eventTypes.map(type => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Description
-          </label>
-          <textarea
-            {...register('description')}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Description de l'événement..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <MapPin className="inline h-4 w-4 mr-1" />
-            Lieu
-          </label>
-          <input
-            {...register('location', { required: 'Lieu requis' })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Adresse du lieu"
-          />
-          {errors.location && (
-            <p className="mt-1 text-sm text-red-600">{errors.location.message}</p>
-          )}
-        </div>
-
-        {/* Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Calendar className="inline h-4 w-4 mr-1" />
-              Date et heure de début
-            </label>
-            <Controller
-              name="startDate"
-              control={control}
-              rules={{ 
-                required: 'Date de début requise',
-                validate: (value) => {
-                  if (!value) return 'Date de début requise';
-                  const now = new Date();
-                  if (value < now) {
-                    return 'La date de début ne peut pas être dans le passé';
-                  }
-                  return true;
-                }
-              }}
-              render={({ field }) => (
-                <input
-                  type="datetime-local"
-                  value={format(field.value, "yyyy-MM-dd'T'HH:mm")}
-                  onChange={(e) => {
-                    const newDate = new Date(e.target.value);
-                    field.onChange(newDate);
-                    
-                    // Mettre à jour automatiquement la date de fin si elle est antérieure
-                    const endDate = watch('endDate');
-                    if (endDate && newDate >= endDate) {
-                      const newEndDate = new Date(newDate);
-                      newEndDate.setHours(newEndDate.getHours() + 1);
-                      setValue('endDate', newEndDate);
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+          <div className="card-body space-y-6">
+            {/* Titre */}
+            <div className="form-group">
+              <label htmlFor="title" className="form-label">
+                Titre de l'événement *
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className={`form-input ${errors.title ? 'border-error-500 focus:ring-error-500' : ''}`}
+                placeholder="Ex: Concert de jazz au Sunset"
+              />
+              {errors.title && (
+                <p className="text-sm text-error-600 mt-1">{errors.title}</p>
               )}
-            />
-            {errors.startDate && (
-              <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
-            )}
-          </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Clock className="inline h-4 w-4 mr-1" />
-              Date et heure de fin
-            </label>
-            <Controller
-              name="endDate"
-              control={control}
-              rules={{ 
-                required: 'Date de fin requise',
-                validate: (value) => {
-                  if (!value) return 'Date de fin requise';
-                  const startDate = watch('startDate');
-                  if (startDate && value <= startDate) {
-                    return 'La date de fin doit être après la date de début';
-                  }
-                  return true;
-                }
-              }}
-              render={({ field }) => (
-                <input
-                  type="datetime-local"
-                  value={format(field.value, "yyyy-MM-dd'T'HH:mm")}
-                  onChange={(e) => field.onChange(new Date(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            {/* Description */}
+            <div className="form-group">
+              <label htmlFor="description" className="form-label">
+                Description *
+              </label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                className={`form-textarea ${errors.description ? 'border-error-500 focus:ring-error-500' : ''}`}
+                rows={4}
+                placeholder="Décrivez votre événement..."
+              />
+              {errors.description && (
+                <p className="text-sm text-error-600 mt-1">{errors.description}</p>
               )}
-            />
-            {errors.endDate && (
-              <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
-            )}
+            </div>
+
+            {/* Type d'événement */}
+            <div className="form-group">
+              <label htmlFor="typeId" className="form-label">
+                Type d'événement *
+              </label>
+              <select
+                id="typeId"
+                value={formData.typeId}
+                onChange={(e) => handleInputChange('typeId', e.target.value)}
+                className={`form-select ${errors.typeId ? 'border-error-500 focus:ring-error-500' : ''}`}
+              >
+                <option value="">Sélectionnez un type</option>
+                {eventTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+              {errors.typeId && (
+                <p className="text-sm text-error-600 mt-1">{errors.typeId}</p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Techniciens requis */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              <Users className="inline h-4 w-4 mr-1" />
-              Techniciens requis
-            </label>
-            <button
-              type="button"
-              onClick={addTechnicianRequirement}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Ajouter
-            </button>
+        {/* Date et lieu */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-xl font-semibold text-secondary-900">Date et lieu</h2>
+            <p className="text-sm text-secondary-600 mt-1">Planifiez quand et où se déroulera l'événement</p>
           </div>
-
-          <div className="space-y-3">
-            {requiredTechnicians?.map((req, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-md">
-                <select
-                  value={req.skillId}
-                  onChange={(e) => updateTechnicianRequirement(index, 'skillId', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {skills.map(skill => (
-                    <option key={skill.id} value={skill.id}>
-                      {skill.name}
-                    </option>
-                  ))}
-                </select>
-
+          <div className="card-body space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Date de début */}
+              <div className="form-group">
+                <label htmlFor="startDate" className="form-label">
+                  Date et heure de début *
+                </label>
                 <input
-                  type="number"
-                  min="1"
-                  value={req.count}
-                  onChange={(e) => updateTechnicianRequirement(index, 'count', parseInt(e.target.value))}
-                  className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nb"
+                  id="startDate"
+                  type="datetime-local"
+                  value={formData.startDate.toISOString().slice(0, 16)}
+                  onChange={(e) => handleInputChange('startDate', new Date(e.target.value))}
+                  className="form-input"
                 />
+              </div>
 
-                <select
-                  value={req.level}
-                  onChange={(e) => updateTechnicianRequirement(index, 'level', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="beginner">Débutant</option>
-                  <option value="intermediate">Intermédiaire</option>
-                  <option value="expert">Expert</option>
-                </select>
+              {/* Date de fin */}
+              <div className="form-group">
+                <label htmlFor="endDate" className="form-label">
+                  Date et heure de fin *
+                </label>
+                <input
+                  id="endDate"
+                  type="datetime-local"
+                  value={formData.endDate.toISOString().slice(0, 16)}
+                  onChange={(e) => handleInputChange('endDate', new Date(e.target.value))}
+                  className={`form-input ${errors.endDate ? 'border-error-500 focus:ring-error-500' : ''}`}
+                />
+                {errors.endDate && (
+                  <p className="text-sm text-error-600 mt-1">{errors.endDate}</p>
+                )}
+              </div>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => removeTechnicianRequirement(index)}
-                  className="p-2 text-red-600 hover:text-red-800 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+            {/* Lieu */}
+            <div className="form-group">
+              <label htmlFor="location" className="form-label">
+                Lieu de l'événement *
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-secondary-400" />
+                <input
+                  id="location"
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  className={`form-input pl-10 ${errors.location ? 'border-error-500 focus:ring-error-500' : ''}`}
+                  placeholder="Ex: Salle de concert, 123 Rue de la Musique, Paris"
+                />
+              </div>
+              {errors.location && (
+                <p className="text-sm text-error-600 mt-1">{errors.location}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Besoins en techniciens */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="text-xl font-semibold text-secondary-900">Besoins en techniciens</h2>
+            <p className="text-sm text-secondary-600 mt-1">Définissez les compétences requises pour cet événement</p>
+          </div>
+          <div className="card-body space-y-6">
+            {formData.requiredTechnicians.map((requirement, index) => (
+              <div key={index} className="border border-secondary-200 rounded-lg p-4 bg-secondary-50/30">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-secondary-900">
+                    Technicien {index + 1}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => removeTechnicianRequirement(index)}
+                    className="p-1 text-secondary-400 hover:text-error-600 hover:bg-error-50 rounded transition-colors duration-200"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Compétence */}
+                  <div className="form-group">
+                    <label className="form-label">Compétence</label>
+                    <select
+                      value={requirement.skillId}
+                      onChange={(e) => updateTechnicianRequirement(index, 'skillId', e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="">Sélectionnez une compétence</option>
+                      <option value="sound">Son</option>
+                      <option value="lighting">Éclairage</option>
+                      <option value="video">Vidéo</option>
+                      <option value="stage">Scène</option>
+                    </select>
+                  </div>
+
+                  {/* Nombre */}
+                  <div className="form-group">
+                    <label className="form-label">Nombre</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={requirement.count}
+                      onChange={(e) => updateTechnicianRequirement(index, 'count', parseInt(e.target.value))}
+                      className="form-input"
+                    />
+                  </div>
+
+                  {/* Niveau */}
+                  <div className="form-group">
+                    <label className="form-label">Niveau requis</label>
+                    <select
+                      value={requirement.level}
+                      onChange={(e) => updateTechnicianRequirement(index, 'level', e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="beginner">Débutant</option>
+                      <option value="intermediate">Intermédiaire</option>
+                      <option value="expert">Expert</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             ))}
 
-            {(!requiredTechnicians || requiredTechnicians.length === 0) && (
-              <p className="text-sm text-gray-500 italic">
-                Aucun technicien requis pour le moment
-              </p>
+            <button
+              type="button"
+              onClick={addTechnicianRequirement}
+              className="btn btn-secondary w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter un technicien
+            </button>
+
+            {errors.requiredTechnicians && (
+              <p className="text-sm text-error-600">{errors.requiredTechnicians}</p>
             )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+        <div className="flex items-center justify-end space-x-4 pt-6 border-t border-secondary-200">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            className="btn btn-secondary"
+            disabled={isLoading}
           >
             Annuler
           </button>
           <button
             type="submit"
+            className="btn btn-primary"
             disabled={isLoading}
-            className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
-            <Save className="h-4 w-4" />
-            <span>{isLoading ? 'Enregistrement...' : 'Enregistrer'}</span>
+            {isLoading ? (
+              <>
+                <div className="spinner spinner-sm mr-2" />
+                Création...
+              </>
+            ) : (
+              'Créer l\'événement'
+            )}
           </button>
         </div>
       </form>
