@@ -1,5 +1,14 @@
 import React from 'react';
-import { Users, Star, CheckCircle, Plus, ChevronRight, Zap, Sparkles } from 'lucide-react';
+import {
+  Calendar,
+  Users,
+  Star,
+  Briefcase,
+  Plus,
+  Settings,
+  BarChart3,
+  FileText
+} from 'lucide-react';
 
 interface QuickActionsProps {
   onNavigate: (page: string) => void;
@@ -9,97 +18,98 @@ interface QuickActionsProps {
 export const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate, onCreateEvent }) => {
   const actions = [
     {
-      title: 'Personnel',
-      description: 'Gérer l\'équipe',
+      name: 'Créer un événement',
+      description: 'Planifier un nouvel événement',
+      icon: Plus,
+      color: 'bg-primary-500',
+      bgColor: 'bg-primary-50',
+      iconColor: 'text-primary-600',
+      onClick: onCreateEvent,
+    },
+    {
+      name: 'Gérer le personnel',
+      description: 'Ajouter ou modifier des techniciens',
       icon: Users,
-      iconColor: 'text-purple-600',
-      iconBgColor: 'bg-purple-50',
-      gradient: 'from-purple-500 to-purple-600',
-      onClick: () => onNavigate('personnel'),
+      color: 'bg-secondary-500',
+      bgColor: 'bg-secondary-50',
+      iconColor: 'text-secondary-600',
+      onClick: () => onNavigate('/admin/users'),
     },
     {
-      title: 'Compétences',
-      description: 'Gérer les spécialités',
+      name: 'Compétences',
+      description: 'Gérer les compétences techniques',
       icon: Star,
-      iconColor: 'text-amber-600',
-      iconBgColor: 'bg-amber-50',
-      gradient: 'from-amber-500 to-amber-600',
-      onClick: () => onNavigate('skills'),
+      color: 'bg-warning-500',
+      bgColor: 'bg-warning-50',
+      iconColor: 'text-warning-600',
+      onClick: () => onNavigate('/admin/skills'),
     },
     {
-      title: 'Affectations',
-      description: 'Gérer l\'équipe',
-      icon: CheckCircle,
-      iconColor: 'text-emerald-600',
-      iconBgColor: 'bg-emerald-50',
-      gradient: 'from-emerald-500 to-emerald-600',
-      onClick: () => onNavigate('assignments'),
+      name: 'Affectations',
+      description: 'Assigner des techniciens',
+      icon: Briefcase,
+      color: 'bg-success-500',
+      bgColor: 'bg-success-50',
+      iconColor: 'text-success-600',
+      onClick: () => onNavigate('/admin/assignments'),
+    },
+    {
+      name: 'Rapports',
+      description: 'Voir les statistiques détaillées',
+      icon: BarChart3,
+      color: 'bg-primary-500',
+      bgColor: 'bg-primary-50',
+      iconColor: 'text-primary-600',
+      onClick: () => onNavigate('/admin/reports'),
+    },
+    {
+      name: 'Paramètres',
+      description: 'Configurer l\'application',
+      icon: Settings,
+      color: 'bg-secondary-500',
+      bgColor: 'bg-secondary-50',
+      iconColor: 'text-secondary-600',
+      onClick: () => onNavigate('/admin/settings'),
     },
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Header compact */}
-      <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-4 py-3 border-b border-gray-100">
-        <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Zap className="h-3 w-3 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-gray-900">Actions rapides</h3>
-            <p className="text-xs text-gray-600">Accès direct</p>
-          </div>
-        </div>
+    <div className="card">
+      <div className="card-header">
+        <h2 className="text-xl font-semibold text-secondary-900">Actions rapides</h2>
+        <p className="text-sm text-secondary-600">Accédez rapidement aux fonctionnalités principales</p>
       </div>
-      
-      {/* Actions compactes */}
-      <div className="p-4 space-y-3">
-        {actions.map((action, index) => (
-          <button
-            key={index}
-            onClick={action.onClick}
-            className="group w-full flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all duration-200 bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50"
-          >
-            <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 ${action.iconBgColor} rounded-lg flex items-center justify-center group-hover:shadow-md transition-all duration-200`}>
-                <action.icon className={`h-5 w-5 ${action.iconColor}`} />
-              </div>
-              <div className="text-left">
-                <h4 className="text-sm font-semibold text-gray-900 group-hover:text-gray-800 transition-colors">
-                  {action.title}
-                </h4>
-                <p className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
-                  {action.description}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-          </button>
-        ))}
+      <div className="card-body">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {actions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.name}
+                onClick={action.onClick}
+                className="group relative p-4 rounded-xl border border-secondary-200 hover:border-secondary-300 hover:shadow-md transition-all duration-200 bg-white hover:bg-secondary-50/50"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-start space-x-3">
+                  <div className={`w-10 h-10 ${action.bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                    <Icon className={`h-5 w-5 ${action.iconColor}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-secondary-900 group-hover:text-secondary-700 transition-colors duration-200">
+                      {action.name}
+                    </h3>
+                    <p className="text-xs text-secondary-500 mt-1 group-hover:text-secondary-600 transition-colors duration-200">
+                      {action.description}
+                    </p>
+                  </div>
+                </div>
 
-        {/* Bouton Nouvel événement compact */}
-        <button
-          onClick={onCreateEvent}
-          className="group w-full flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
-        >
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:bg-white/30 transition-all duration-200">
-              <Plus className="h-5 w-5 text-white" />
-            </div>
-            <div className="text-left">
-              <h4 className="text-sm font-semibold text-white">
-                Nouvel événement
-              </h4>
-              <p className="text-xs text-blue-100 group-hover:text-white transition-colors">
-                Créer un événement
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Sparkles className="h-3 w-3 text-white/80 group-hover:text-white transition-colors" />
-            <ChevronRight className="h-3 w-3 text-white/80 group-hover:text-white transition-colors" />
-          </div>
-        </button>
+                {/* Effet de survol */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%]" />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

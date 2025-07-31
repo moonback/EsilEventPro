@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertCircle, Info, X, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
 interface ToastProps {
   type: 'success' | 'error' | 'warning' | 'info';
@@ -9,35 +9,54 @@ interface ToastProps {
   onClose: () => void;
 }
 
-const toastStyles = {
-  success: {
-    icon: CheckCircle,
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
-    textColor: 'text-green-800',
-    iconColor: 'text-green-600',
-  },
-  error: {
-    icon: XCircle,
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
-    textColor: 'text-red-800',
-    iconColor: 'text-red-600',
-  },
-  warning: {
-    icon: AlertCircle,
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-200',
-    textColor: 'text-amber-800',
-    iconColor: 'text-amber-600',
-  },
-  info: {
-    icon: Info,
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    textColor: 'text-blue-800',
-    iconColor: 'text-blue-600',
-  },
+const getToastIcon = (type: string) => {
+  switch (type) {
+    case 'success':
+      return <CheckCircle className="h-5 w-5 text-success-600" />;
+    case 'error':
+      return <XCircle className="h-5 w-5 text-error-600" />;
+    case 'warning':
+      return <AlertCircle className="h-5 w-5 text-warning-600" />;
+    case 'info':
+      return <Info className="h-5 w-5 text-primary-600" />;
+    default:
+      return <Info className="h-5 w-5 text-primary-600" />;
+  }
+};
+
+const getToastStyles = (type: string) => {
+  switch (type) {
+    case 'success':
+      return {
+        bg: 'bg-success-50',
+        border: 'border-success-200',
+        iconBg: 'bg-success-100',
+      };
+    case 'error':
+      return {
+        bg: 'bg-error-50',
+        border: 'border-error-200',
+        iconBg: 'bg-error-100',
+      };
+    case 'warning':
+      return {
+        bg: 'bg-warning-50',
+        border: 'border-warning-200',
+        iconBg: 'bg-warning-100',
+      };
+    case 'info':
+      return {
+        bg: 'bg-primary-50',
+        border: 'border-primary-200',
+        iconBg: 'bg-primary-100',
+      };
+    default:
+      return {
+        bg: 'bg-primary-50',
+        border: 'border-primary-200',
+        iconBg: 'bg-primary-100',
+      };
+  }
 };
 
 export const Toast: React.FC<ToastProps> = ({
@@ -49,52 +68,77 @@ export const Toast: React.FC<ToastProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-
-  const style = toastStyles[type];
-  const Icon = style.icon;
+  const styles = getToastStyles(type);
 
   useEffect(() => {
-    setIsVisible(true);
+    // Animation d'entrée
+    const timer = setTimeout(() => setIsVisible(true), 100);
     
-    const timer = setTimeout(() => {
+    // Auto-fermeture
+    const autoCloseTimer = setTimeout(() => {
       handleClose();
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(autoCloseTimer);
+    };
   }, [duration]);
 
   const handleClose = () => {
     setIsLeaving(true);
     setTimeout(() => {
       onClose();
-    }, 200);
+    }, 300);
   };
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transform transition-all duration-200 ${
-        isVisible && !isLeaving ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ease-out ${
+        isVisible && !isLeaving
+          ? 'translate-x-0 opacity-100 scale-100'
+          : 'translate-x-full opacity-0 scale-95'
       }`}
     >
-      <div className={`${style.bgColor} ${style.borderColor} border rounded-lg shadow-lg p-4 max-w-sm`}>
+      <div
+        className={`${styles.bg} ${styles.border} border rounded-xl shadow-xl p-4 max-w-sm w-full backdrop-blur-sm`}
+      >
         <div className="flex items-start space-x-3">
-          <div className={`${style.iconColor} flex-shrink-0`}>
-            <Icon className="h-5 w-5" />
+          {/* Icône */}
+          <div className={`${styles.iconBg} rounded-lg p-2 flex-shrink-0`}>
+            {getToastIcon(type)}
           </div>
-          
+
+          {/* Contenu */}
           <div className="flex-1 min-w-0">
-            <h4 className={`text-sm font-medium ${style.textColor}`}>{title}</h4>
+            <h3 className="text-sm font-semibold text-secondary-900 mb-1">
+              {title}
+            </h3>
             {message && (
-              <p className={`text-sm ${style.textColor} opacity-80 mt-1`}>{message}</p>
+              <p className="text-sm text-secondary-600 leading-relaxed">
+                {message}
+              </p>
             )}
           </div>
-          
+
+          {/* Bouton fermer */}
           <button
             onClick={handleClose}
-            className={`${style.textColor} opacity-60 hover:opacity-100 transition-opacity duration-200`}
+            className="flex-shrink-0 p-1 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 rounded-lg transition-colors duration-200"
           >
             <X className="h-4 w-4" />
           </button>
+        </div>
+
+        {/* Barre de progression */}
+        <div className="mt-3 h-1 bg-secondary-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-300 ease-linear"
+            style={{
+              width: isLeaving ? '0%' : '100%',
+              transitionDuration: isLeaving ? '300ms' : `${duration}ms`,
+            }}
+          />
         </div>
       </div>
     </div>
@@ -102,14 +146,16 @@ export const Toast: React.FC<ToastProps> = ({
 };
 
 // Hook pour gérer les toasts
+interface ToastItem {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message?: string;
+  duration?: number;
+}
+
 export const useToast = () => {
-  const [toasts, setToasts] = useState<Array<{
-    id: string;
-    type: 'success' | 'error' | 'warning' | 'info';
-    title: string;
-    message?: string;
-    duration?: number;
-  }>>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const addToast = (
     type: 'success' | 'error' | 'warning' | 'info',
@@ -118,7 +164,8 @@ export const useToast = () => {
     duration?: number
   ) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, type, title, message, duration }]);
+    const newToast: ToastItem = { id, type, title, message, duration };
+    setToasts(prev => [...prev, newToast]);
   };
 
   const removeToast = (id: string) => {
@@ -143,29 +190,37 @@ export const useToast = () => {
 
   return {
     toasts,
+    addToast,
+    removeToast,
     success,
     error,
     warning,
     info,
-    removeToast,
   };
 };
 
-// Composant ToastContainer
+// Container pour afficher tous les toasts
 export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <Toast
+    <div className="fixed top-4 right-4 z-50 space-y-4">
+      {toasts.map((toast, index) => (
+        <div
           key={toast.id}
-          type={toast.type}
-          title={toast.title}
-          message={toast.message}
-          duration={toast.duration}
-          onClose={() => removeToast(toast.id)}
-        />
+          className="transform transition-all duration-300 ease-out"
+          style={{
+            transform: `translateY(${index * 80}px)`,
+          }}
+        >
+          <Toast
+            type={toast.type}
+            title={toast.title}
+            message={toast.message}
+            duration={toast.duration}
+            onClose={() => removeToast(toast.id)}
+          />
+        </div>
       ))}
     </div>
   );

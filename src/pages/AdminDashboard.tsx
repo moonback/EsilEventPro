@@ -1,200 +1,288 @@
 import React, { useState, useEffect } from 'react';
-import { startOfWeek, endOfWeek } from 'date-fns';
-import toast from 'react-hot-toast';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { Event, EventFormData } from '../types';
-import PersonnelManagement from './PersonnelManagement';
-import SkillsManagement from './SkillsManagement';
-import AssignmentsManagement from './AssignmentsManagement';
-import { DashboardHeader } from '../components/Dashboard/DashboardHeader';
+import { EventFormData, Event } from '../types';
+import { 
+  Calendar, 
+  Users, 
+  Clock, 
+  TrendingUp, 
+  Plus, 
+  Eye, 
+  Edit, 
+  Trash2,
+  BarChart3,
+  Activity,
+  Target,
+  Award
+} from 'lucide-react';
+import { MetricsCard } from '../components/Dashboard/MetricsCard';
 import { MetricsGrid } from '../components/Dashboard/MetricsGrid';
-import { CalendarSection } from '../components/Dashboard/CalendarSection';
 import { QuickActions } from '../components/Dashboard/QuickActions';
 import { UpcomingEvents } from '../components/Dashboard/UpcomingEvents';
-import { DetailedStats } from '../components/Dashboard/DetailedStats';
+import { CalendarSection } from '../components/Dashboard/CalendarSection';
 import { EventFormModal } from '../components/Dashboard/EventFormModal';
+import { useToast } from '../components/Toast';
 
 export const AdminDashboard: React.FC = () => {
-  const { events, users, assignments, addEvent, updateEvent, deleteEvent } = useAppStore();
+  const { events, users, assignments, eventTypes, addEvent, updateEvent, deleteEvent } = useAppStore();
   const { user } = useAuthStore();
+  const { success, error } = useToast();
+  
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [showEventForm, setShowEventForm] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'dashboard' | 'personnel' | 'skills' | 'assignments'>('dashboard');
+  const [isEventFormOpen, setIsEventFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Statistiques avancées
+  // Calculer les statistiques
   const stats = {
     totalEvents: events.length,
     totalTechnicians: users.filter(u => u.role === 'technician').length,
-    upcomingEvents: events.filter(e => new Date(e.startDate) > new Date()).length,
-    pendingAssignments: assignments.filter(a => a.status === 'pending').length,
-    completedEvents: events.filter(e => e.status === 'completed').length,
+    eventCompletionRate: `${Math.round((events.filter(e => e.status === 'completed').length / events.length) * 100) || 0}%`,
+    assignmentAcceptanceRate: `${Math.round((assignments.filter(a => a.status === 'accepted').length / assignments.length) * 100) || 0}%`,
+  };
+
+  const detailedStats = {
     confirmedEvents: events.filter(e => e.status === 'confirmed').length,
     draftEvents: events.filter(e => e.status === 'draft').length,
+    pendingAssignments: assignments.filter(a => a.status === 'pending').length,
     acceptedAssignments: assignments.filter(a => a.status === 'accepted').length,
     declinedAssignments: assignments.filter(a => a.status === 'declined').length,
   };
 
-  // Calculs avancés
-  const eventCompletionRate = stats.totalEvents > 0 ? ((stats.completedEvents / stats.totalEvents) * 100).toFixed(1) : '0';
-  const assignmentAcceptanceRate = stats.totalTechnicians > 0 ? ((stats.acceptedAssignments / (stats.acceptedAssignments + stats.declinedAssignments)) * 100).toFixed(1) : '0';
-  const weeklyEvents = events.filter(e => {
-    const eventDate = new Date(e.startDate);
-    const weekStart = startOfWeek(new Date());
-    const weekEnd = endOfWeek(new Date());
-    return eventDate >= weekStart && eventDate <= weekEnd;
-  }).length;
-
-  // Événements récents avec plus de détails
-  const upcomingEvents = events
-    .filter(e => new Date(e.startDate) > new Date())
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-    .slice(0, 5);
-
-  const handleCreateEvent = (data: EventFormData) => {
-    const eventType = useAppStore.getState().eventTypes.find(t => t.id === data.typeId);
-    if (!eventType || !user) return;
-
-    const newEvent = {
-      ...data,
-      type: eventType,
-      assignments: [],
-      status: 'draft' as const,
-      createdBy: user.id,
-    };
-
-    addEvent(newEvent);
-    setShowEventForm(false);
-    toast.success('Événement créé avec succès !');
+  const handleCreateEvent = async (data: EventFormData) => {
+    setIsLoading(true);
+    try {
+      await addEvent({ ...data, createdBy: user?.id || '' });
+      success('Événement créé', 'L\'événement a été créé avec succès');
+      setIsEventFormOpen(false);
+    } catch (err) {
+      error('Erreur', 'Impossible de créer l\'événement');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateEvent = (data: EventFormData) => {
+  const handleUpdateEvent = async (data: EventFormData) => {
     if (!selectedEvent) return;
-
-    const eventType = useAppStore.getState().eventTypes.find(t => t.id === data.typeId);
-    if (!eventType) return;
-
-    updateEvent(selectedEvent.id, {
-      ...data,
-    });
-
-    setSelectedEvent(null);
-    setShowEventForm(false);
-    toast.success('Événement mis à jour !');
+    
+    setIsLoading(true);
+    try {
+      await updateEvent(selectedEvent.id, data);
+      success('Événement mis à jour', 'L\'événement a été modifié avec succès');
+      setSelectedEvent(null);
+      setIsEventFormOpen(false);
+    } catch (err) {
+      error('Erreur', 'Impossible de modifier l\'événement');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelectEvent = (event: Event) => {
     setSelectedEvent(event);
-    setShowEventForm(true);
+    setIsEventFormOpen(true);
   };
 
   const handleCreateFromSlot = (slotInfo: { start: Date; end: Date }) => {
     setSelectedEvent(null);
-    setShowEventForm(true);
+    setIsEventFormOpen(true);
   };
 
   const handleDeleteEvent = async (event: Event) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer l'événement "${event.title}" ?`)) {
-      return;
-    }
-
-    try {
-      await deleteEvent(event.id);
-      toast.success('Événement supprimé avec succès !');
-    } catch (error) {
-      console.error('Erreur lors de la suppression de l\'événement:', error);
-      toast.error('Erreur lors de la suppression de l\'événement');
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
+      try {
+        await deleteEvent(event.id);
+        success('Événement supprimé', 'L\'événement a été supprimé avec succès');
+      } catch (err) {
+        error('Erreur', 'Impossible de supprimer l\'événement');
+      }
     }
   };
 
   const handleNavigate = (page: string) => {
-    setCurrentPage(page as any);
+    // Navigation vers d'autres pages
+    console.log('Navigation vers:', page);
   };
 
   const handleCreateEventClick = () => {
     setSelectedEvent(null);
-    setShowEventForm(true);
+    setIsEventFormOpen(true);
   };
 
   const handleCancelEventForm = () => {
-    setShowEventForm(false);
     setSelectedEvent(null);
+    setIsEventFormOpen(false);
   };
 
-  if (showEventForm) {
-    return (
-      <EventFormModal
-        selectedEvent={selectedEvent}
-        onSubmit={selectedEvent ? handleUpdateEvent : handleCreateEvent}
-        onCancel={handleCancelEventForm}
-      />
-    );
-  }
-
-  if (currentPage === 'personnel') {
-    return <PersonnelManagement onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === 'skills') {
-    return <SkillsManagement onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === 'assignments') {
-    return <AssignmentsManagement onNavigate={handleNavigate} />;
-  }
+  // Événements à venir (prochains 7 jours)
+  const upcomingEvents = events
+    .filter(event => {
+      const eventDate = new Date(event.startDate);
+      const now = new Date();
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return eventDate >= now && eventDate <= sevenDaysFromNow;
+    })
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
-      <div className="max-w-12xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header compact et professionnel */}
-        <DashboardHeader onCreateEvent={handleCreateEventClick} />
-
-        {/* Métriques principales compactes */}
-        <MetricsGrid
-          stats={{
-            totalEvents: stats.totalEvents,
-            totalTechnicians: stats.totalTechnicians,
-            eventCompletionRate,
-            assignmentAcceptanceRate,
-          }}
-        />
-
-        {/* Section principale avec layout compact */}
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-          {/* Colonne principale - Calendrier (3 colonnes sur xl) */}
-          <div className="xl:col-span-3">
-            <CalendarSection
-              weeklyEvents={weeklyEvents}
-              onSelectEvent={handleSelectEvent}
-              onSelectSlot={handleCreateFromSlot}
-              onDeleteEvent={handleDeleteEvent}
-            />
+    <div className="space-y-8">
+      {/* En-tête du dashboard */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-secondary-900">
+              Tableau de bord
+            </h1>
+            <p className="text-secondary-600 mt-1">
+              Bienvenue, {user?.firstName} {user?.lastName}
+            </p>
           </div>
+          <button
+            onClick={handleCreateEventClick}
+            className="btn btn-primary"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvel événement
+          </button>
+        </div>
+      </div>
 
-          {/* Colonne latérale - Actions rapides et événements (2 colonnes sur xl) */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Actions rapides */}
-            <QuickActions
-              onNavigate={handleNavigate}
-              onCreateEvent={handleCreateEventClick}
-            />
+      {/* Métriques principales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricsCard
+          title="Événements totaux"
+          value={stats.totalEvents}
+          icon={Calendar}
+          iconColor="#3b82f6"
+          iconBgColor="#dbeafe"
+          trend="up"
+          trendValue="+12%"
+          trendColor="#16a34a"
+          subtitle="Ce mois"
+        />
+        <MetricsCard
+          title="Techniciens"
+          value={stats.totalTechnicians}
+          icon={Users}
+          iconColor="#8b5cf6"
+          iconBgColor="#ede9fe"
+          trend="neutral"
+          trendValue="0%"
+          trendColor="#64748b"
+          subtitle="Actifs"
+        />
+        <MetricsCard
+          title="Taux de complétion"
+          value={stats.eventCompletionRate}
+          icon={Target}
+          iconColor="#f59e0b"
+          iconBgColor="#fef3c7"
+          trend="up"
+          trendValue="+5%"
+          trendColor="#16a34a"
+          subtitle="Ce mois"
+        />
+        <MetricsCard
+          title="Taux d'acceptation"
+          value={stats.assignmentAcceptanceRate}
+          icon={Award}
+          iconColor="#10b981"
+          iconBgColor="#d1fae5"
+          trend="up"
+          trendValue="+8%"
+          trendColor="#16a34a"
+          subtitle="Ce mois"
+        />
+      </div>
 
-            {/* Événements à venir */}
-            <UpcomingEvents events={upcomingEvents} />
+      {/* Actions rapides et événements à venir */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Actions rapides */}
+        <div className="lg:col-span-1">
+          <QuickActions
+            onNavigate={handleNavigate}
+            onCreateEvent={handleCreateEventClick}
+          />
+        </div>
 
-            {/* Statistiques détaillées */}
-            <DetailedStats
-              stats={{
-                confirmedEvents: stats.confirmedEvents,
-                draftEvents: stats.draftEvents,
-                pendingAssignments: stats.pendingAssignments,
-                acceptedAssignments: stats.acceptedAssignments,
-                declinedAssignments: stats.declinedAssignments,
-              }}
-            />
+        {/* Événements à venir */}
+        <div className="lg:col-span-2">
+          <UpcomingEvents events={upcomingEvents} />
+        </div>
+      </div>
+
+      {/* Statistiques détaillées */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="text-xl font-semibold text-secondary-900">Statistiques détaillées</h2>
+          <p className="text-sm text-secondary-600">Vue d'ensemble de vos activités</p>
+        </div>
+        <div className="card-body">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="h-6 w-6 text-success-600" />
+              </div>
+              <div className="text-2xl font-bold text-secondary-900">{detailedStats.confirmedEvents}</div>
+              <div className="text-sm text-secondary-600">Événements confirmés</div>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Activity className="h-6 w-6 text-warning-600" />
+              </div>
+              <div className="text-2xl font-bold text-secondary-900">{detailedStats.draftEvents}</div>
+              <div className="text-sm text-secondary-600">Événements brouillon</div>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Clock className="h-6 w-6 text-primary-600" />
+              </div>
+              <div className="text-2xl font-bold text-secondary-900">{detailedStats.pendingAssignments}</div>
+              <div className="text-sm text-secondary-600">Affectations en attente</div>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <TrendingUp className="h-6 w-6 text-success-600" />
+              </div>
+              <div className="text-2xl font-bold text-secondary-900">{detailedStats.acceptedAssignments}</div>
+              <div className="text-sm text-secondary-600">Affectations acceptées</div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Calendrier */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="text-xl font-semibold text-secondary-900">Calendrier des événements</h2>
+          <p className="text-sm text-secondary-600">Visualisez et gérez vos événements</p>
+        </div>
+        <div className="card-body">
+          <CalendarSection
+            weeklyEvents={events.filter(e => {
+              const eventDate = new Date(e.startDate);
+              const now = new Date();
+              const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+              return eventDate >= now && eventDate <= weekFromNow;
+            }).length}
+            onSelectEvent={handleSelectEvent}
+            onSelectSlot={handleCreateFromSlot}
+            onDeleteEvent={handleDeleteEvent}
+          />
+        </div>
+      </div>
+
+      {/* Modal de création/modification d'événement */}
+      {isEventFormOpen && (
+        <EventFormModal
+          selectedEvent={selectedEvent}
+          onSubmit={selectedEvent ? handleUpdateEvent : handleCreateEvent}
+          onCancel={handleCancelEventForm}
+          isLoading={isLoading}
+          eventTypes={eventTypes}
+        />
+      )}
     </div>
   );
 };
