@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { User, Event, Assignment, Skill, EventType, EventFormData } from '../types';
+import { User, Event, Assignment, Skill, EventType, EventFormData, MissionPricing, TargetedTechnician } from '../types';
 import { Database } from '../lib/supabase';
 import { differenceInHours } from 'date-fns';
 
@@ -331,14 +331,18 @@ export const eventService = {
   },
 
   async create(eventData: EventFormData & { createdBy: string }): Promise<Event> {
+    // S'assurer que les dates sont des objets Date
+    const startDate = eventData.startDate instanceof Date ? eventData.startDate : new Date(eventData.startDate);
+    const endDate = eventData.endDate instanceof Date ? eventData.endDate : new Date(eventData.endDate);
+    
     // Créer l'événement
     const { data: event, error: eventError } = await supabase
       .from('events')
       .insert({
         title: eventData.title,
         description: eventData.description,
-        start_date: eventData.startDate.toISOString(),
-        end_date: eventData.endDate.toISOString(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         location: eventData.location,
         type_id: eventData.typeId,
         status: 'draft',
@@ -361,6 +365,28 @@ export const eventService = {
       await supabase.from('event_requirements').insert(requirementInserts);
     }
 
+    // Créer le forfait de rémunération si fourni
+    if (eventData.pricing) {
+      await missionPricingService.create({
+        eventId: event.id,
+        basePrice: eventData.pricing.basePrice,
+        pricePerHour: eventData.pricing.pricePerHour,
+        bonusPercentage: eventData.pricing.bonusPercentage,
+      });
+    }
+
+    // Créer les sélections ciblées de techniciens si fournies
+    if (eventData.targetedTechnicians && eventData.targetedTechnicians.length > 0) {
+      const selectionInserts = eventData.targetedTechnicians.map(technicianId => ({
+        eventId: event.id,
+        technicianId,
+        selectedByAdmin: true,
+        selectionReason: '',
+      }));
+
+      await targetedTechniciansService.createMultiple(selectionInserts);
+    }
+
     // Récupérer l'événement complet avec les relations
     return this.getById(event.id) as Promise<Event>;
   },
@@ -369,8 +395,14 @@ export const eventService = {
     const updateData: any = {};
     if (eventData.title) updateData.title = eventData.title;
     if (eventData.description) updateData.description = eventData.description;
-    if (eventData.startDate) updateData.start_date = eventData.startDate.toISOString();
-    if (eventData.endDate) updateData.end_date = eventData.endDate.toISOString();
+    if (eventData.startDate) {
+      const startDate = eventData.startDate instanceof Date ? eventData.startDate : new Date(eventData.startDate);
+      updateData.start_date = startDate.toISOString();
+    }
+    if (eventData.endDate) {
+      const endDate = eventData.endDate instanceof Date ? eventData.endDate : new Date(eventData.endDate);
+      updateData.end_date = endDate.toISOString();
+    }
     if (eventData.location) updateData.location = eventData.location;
     if (eventData.typeId) updateData.type_id = eventData.typeId;
     updateData.updated_at = new Date().toISOString();
@@ -634,8 +666,8 @@ export const userStatsService = {
       }
 
       // Calculer les heures si l'affectation est acceptée
-      if (assignment.status === 'accepted' && assignment.events) {
-        const event = assignment.events;
+      if (assignment.status === 'accepted' && assignment.events && Array.isArray(assignment.events) && assignment.events.length > 0) {
+        const event = assignment.events[0]; // Prendre le premier événement
         const eventStart = new Date(event.start_date);
         const eventEnd = new Date(event.end_date);
         
@@ -685,4 +717,267 @@ export const userStatsService = {
       event: item.events
     })) || [];
   }
+}; 
+
+// Service pour les forfaits de rémunération
+export const missionPricingService = {
+  async getByEventId(eventId: string): Promise<MissionPricing | null> {
+    console.log('Tentative de récupération du pricing pour event:', eventId);
+    
+    try {
+      // Première tentative : récupération directe
+      const { data, error } = await supabase
+        .from('mission_pricing')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Erreur lors de la récupération directe du pricing:', error);
+        
+        // Si l'erreur est 406, essayer une approche alternative
+        if (error.code === '406' || error.message?.includes('406')) {
+          console.log('Erreur 406 détectée, tentative d\'approche alternative');
+          
+          // Essayer de récupérer via une jointure avec assignments
+          const { data: assignmentData, error: assignmentError } = await supabase
+            .from('assignments')
+            .select(`
+              event_id,
+              mission_pricing!inner(*)
+            `)
+            .eq('event_id', eventId)
+            .order('mission_pricing.updated_at', { ascending: false })
+            .limit(1);
+
+          if (assignmentError) {
+            console.error('Erreur lors de la récupération via assignments:', assignmentError);
+            throw error; // Retourner l'erreur originale
+          }
+
+          if (!assignmentData || !Array.isArray(assignmentData) || assignmentData.length === 0) {
+            console.log('Aucune donnée de pricing trouvée via assignments');
+            return null;
+          }
+
+          const assignment = assignmentData[0];
+          if (!assignment?.mission_pricing || !Array.isArray(assignment.mission_pricing) || assignment.mission_pricing.length === 0) {
+            console.log('Aucune donnée de pricing trouvée dans l\'assignment');
+            return null;
+          }
+
+          const pricingData = assignment.mission_pricing[0];
+          console.log('Pricing récupéré avec succès (via assignments):', pricingData);
+          return {
+            id: pricingData.id,
+            eventId: pricingData.event_id,
+            basePrice: pricingData.base_price,
+            pricePerHour: pricingData.price_per_hour,
+            bonusPercentage: pricingData.bonus_percentage,
+            createdAt: new Date(pricingData.created_at),
+            updatedAt: new Date(pricingData.updated_at),
+          };
+        }
+        
+        throw error;
+      }
+      
+      // Vérifier si on a des données
+      if (!data || data.length === 0) {
+        console.log('Aucune donnée de pricing trouvée pour cet événement');
+        return null;
+      }
+
+      const pricingData = data[0];
+      console.log('Pricing récupéré avec succès:', pricingData);
+      return {
+        id: pricingData.id,
+        eventId: pricingData.event_id,
+        basePrice: pricingData.base_price,
+        pricePerHour: pricingData.price_per_hour,
+        bonusPercentage: pricingData.bonus_percentage,
+        createdAt: new Date(pricingData.created_at),
+        updatedAt: new Date(pricingData.updated_at),
+      };
+    } catch (error) {
+      console.error('Erreur fatale lors de la récupération du pricing:', error);
+      throw error;
+    }
+  },
+
+  async create(pricingData: Omit<MissionPricing, 'id' | 'createdAt' | 'updatedAt'>): Promise<MissionPricing> {
+    const { data, error } = await supabase
+      .from('mission_pricing')
+      .insert({
+        event_id: pricingData.eventId,
+        base_price: pricingData.basePrice,
+        price_per_hour: pricingData.pricePerHour,
+        bonus_percentage: pricingData.bonusPercentage,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      eventId: data.event_id,
+      basePrice: data.base_price,
+      pricePerHour: data.price_per_hour,
+      bonusPercentage: data.bonus_percentage,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  },
+
+  async update(eventId: string, pricingData: Partial<Omit<MissionPricing, 'id' | 'eventId' | 'createdAt' | 'updatedAt'>>): Promise<MissionPricing> {
+    const { data, error } = await supabase
+      .from('mission_pricing')
+      .update({
+        base_price: pricingData.basePrice,
+        price_per_hour: pricingData.pricePerHour,
+        bonus_percentage: pricingData.bonusPercentage,
+      })
+      .eq('event_id', eventId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      eventId: data.event_id,
+      basePrice: data.base_price,
+      pricePerHour: data.price_per_hour,
+      bonusPercentage: data.bonus_percentage,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  },
+
+  async calculateMissionPrice(eventId: string, technicianId: string): Promise<number> {
+    const { data, error } = await supabase
+      .rpc('calculate_mission_price', {
+        p_event_id: eventId,
+        p_technician_id: technicianId,
+      });
+
+    if (error) throw error;
+    return data || 0;
+  },
+};
+
+// Service pour la sélection ciblée des techniciens
+export const targetedTechniciansService = {
+  async getByEventId(eventId: string): Promise<TargetedTechnician[]> {
+    const { data, error } = await supabase
+      .from('targeted_technicians')
+      .select('*')
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      id: item.id,
+      eventId: item.event_id,
+      technicianId: item.technician_id,
+      selectedByAdmin: item.selected_by_admin,
+      selectionReason: item.selection_reason,
+      createdAt: new Date(item.created_at),
+    })) || [];
+  },
+
+  async create(selectionData: Omit<TargetedTechnician, 'id' | 'createdAt'>): Promise<TargetedTechnician> {
+    const { data, error } = await supabase
+      .from('targeted_technicians')
+      .insert({
+        event_id: selectionData.eventId,
+        technician_id: selectionData.technicianId,
+        selected_by_admin: selectionData.selectedByAdmin,
+        selection_reason: selectionData.selectionReason,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      eventId: data.event_id,
+      technicianId: data.technician_id,
+      selectedByAdmin: data.selected_by_admin,
+      selectionReason: data.selection_reason,
+      createdAt: new Date(data.created_at),
+    };
+  },
+
+  async createMultiple(selections: Omit<TargetedTechnician, 'id' | 'createdAt'>[]): Promise<TargetedTechnician[]> {
+    const { data, error } = await supabase
+      .from('targeted_technicians')
+      .insert(
+        selections.map(selection => ({
+          event_id: selection.eventId,
+          technician_id: selection.technicianId,
+          selected_by_admin: selection.selectedByAdmin,
+          selection_reason: selection.selectionReason,
+        }))
+      )
+      .select();
+
+    if (error) throw error;
+
+    return data?.map(item => ({
+      id: item.id,
+      eventId: item.event_id,
+      technicianId: item.technician_id,
+      selectedByAdmin: item.selected_by_admin,
+      selectionReason: item.selection_reason,
+      createdAt: new Date(item.created_at),
+    })) || [];
+  },
+
+  async deleteByEventId(eventId: string): Promise<void> {
+    const { error } = await supabase
+      .from('targeted_technicians')
+      .delete()
+      .eq('event_id', eventId);
+
+    if (error) throw error;
+  },
+
+  async getTechniciansWithAvailability(eventId: string): Promise<Array<User & { availability: string; estimatedPrice: number }>> {
+    // Récupérer les techniciens avec leurs compétences
+    const technicians = await userService.getAll();
+    const techniciansWithSkills = technicians.filter(user => user.role === 'technician');
+
+    // Récupérer les exigences de l'événement
+    const event = await eventService.getById(eventId);
+    if (!event) return [];
+
+    // Récupérer le forfait de rémunération
+    const pricing = await missionPricingService.getByEventId(eventId);
+
+    return techniciansWithSkills.map(technician => {
+      // Vérifier si le technicien a les compétences requises
+      const hasRequiredSkills = event.requiredTechnicians.some(req =>
+        technician.skills.some(skill => skill.id === req.skillId)
+      );
+
+      // Simuler la disponibilité (dans un vrai projet, cela viendrait d'une API)
+      const availability = hasRequiredSkills ? 'available' : 'unknown';
+
+      // Calculer le prix estimé
+      const durationHours = differenceInHours(event.endDate, event.startDate);
+      const estimatedPrice = pricing 
+        ? pricing.basePrice + (pricing.pricePerHour * durationHours)
+        : 50 + (25 * durationHours);
+
+      return {
+        ...technician,
+        availability,
+        estimatedPrice,
+      };
+    });
+  },
 }; 

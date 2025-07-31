@@ -19,6 +19,25 @@ export interface Skill {
   level: 'beginner' | 'intermediate' | 'expert';
 }
 
+export interface MissionPricing {
+  id: string;
+  eventId: string;
+  basePrice: number;
+  pricePerHour: number;
+  bonusPercentage: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TargetedTechnician {
+  id: string;
+  eventId: string;
+  technicianId: string;
+  selectedByAdmin: boolean;
+  selectionReason?: string;
+  createdAt: Date;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -33,6 +52,8 @@ export interface Event {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  pricing?: MissionPricing;
+  targetedTechnicians?: TargetedTechnician[];
 }
 
 export interface EventType {
@@ -96,6 +117,12 @@ export interface EventFormData {
   location: string;
   typeId: string;
   requiredTechnicians: TechnicianRequirement[];
+  pricing?: {
+    basePrice: number;
+    pricePerHour: number;
+    bonusPercentage: number;
+  };
+  targetedTechnicians?: string[]; // IDs des techniciens sélectionnés
 }
 
 export interface CalendarEvent {

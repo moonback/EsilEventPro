@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp, Filter, SortAsc, FileText, Eye, Users, Briefcase } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, AlertTriangle, User, MapPin, CalendarDays, TrendingUp, Filter, SortAsc, FileText, Eye, Users, Briefcase, Euro } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { Assignment, Event } from '../types';
+import { Assignment, Event, MissionPricing } from '../types';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import toast from 'react-hot-toast';
+import { missionPricingService } from '../services/supabaseService';
+import { MissionPricingDisplay } from '../components/Events/MissionPricingDisplay';
 
 export const TechnicianDashboard: React.FC = () => {
   const { events, assignments, users, addAssignment, updateAssignment, loadInitialData } = useAppStore();
@@ -14,11 +16,8 @@ export const TechnicianDashboard: React.FC = () => {
   const [declineReason, setDeclineReason] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
-
-  useEffect(() => {
-    // Les données sont maintenant chargées automatiquement dans App.tsx
-    // Les affectations seront gérées par l'administrateur via l'interface
-  }, []);
+  const [eventPricing, setEventPricing] = useState<Record<string, MissionPricing>>({});
+  const [loadingPricing, setLoadingPricing] = useState<Record<string, boolean>>({});
 
   // Affectations pour ce technicien
   const myAssignments = assignments.filter(a => a.technicianId === user?.id);
@@ -30,6 +29,36 @@ export const TechnicianDashboard: React.FC = () => {
     ...event,
     assignment: myAssignments.find(a => a.eventId === event.id)!
   }));
+
+  useEffect(() => {
+    // Les données sont maintenant chargées automatiquement dans App.tsx
+    // Les affectations seront gérées par l'administrateur via l'interface
+    
+    // Charger les tarifications pour les événements assignés
+    const loadEventPricing = async () => {
+      for (const event of myEvents) {
+        if (!eventPricing[event.id] && !loadingPricing[event.id]) {
+          setLoadingPricing(prev => ({ ...prev, [event.id]: true }));
+          try {
+            const pricing = await missionPricingService.getByEventId(event.id);
+            if (pricing) {
+              setEventPricing(prev => ({ ...prev, [event.id]: pricing }));
+            }
+          } catch (error) {
+            console.error(`Erreur lors du chargement de la tarification pour l'événement ${event.id}:`, error);
+            // Ne pas afficher d'erreur à l'utilisateur pour les problèmes de tarification
+            // car cela peut être normal si aucune tarification n'est définie
+          } finally {
+            setLoadingPricing(prev => ({ ...prev, [event.id]: false }));
+          }
+        }
+      }
+    };
+
+    if (myEvents.length > 0) {
+      loadEventPricing();
+    }
+  }, [myEvents, eventPricing, loadingPricing]);
 
   // Filtrage et tri des événements assignés
   const filteredAndSortedEvents = myEvents
@@ -55,6 +84,28 @@ export const TechnicianDashboard: React.FC = () => {
     accepted: myAssignments.filter(a => a.status === 'accepted').length,
     declined: myAssignments.filter(a => a.status === 'declined').length,
   };
+
+  // Calculer le total des rémunérations pour les contrats acceptés
+  const totalEarnings = myEvents
+    .filter(eventWithAssignment => eventWithAssignment.assignment.status === 'accepted')
+    .reduce((total, eventWithAssignment) => {
+      const pricing = eventPricing[eventWithAssignment.id];
+      if (pricing) {
+        const durationHours = (new Date(eventWithAssignment.endDate).getTime() - new Date(eventWithAssignment.startDate).getTime()) / (1000 * 60 * 60);
+        const basePrice = pricing.basePrice;
+        const hourlyPrice = pricing.pricePerHour * durationHours;
+        const totalPrice = basePrice + hourlyPrice;
+        
+        // Appliquer le bonus pour les experts
+        const technicianLevel = user?.skills?.[0]?.level || 'intermediate';
+        const hasExpertBonus = technicianLevel === 'expert' && pricing.bonusPercentage > 0;
+        const bonusAmount = hasExpertBonus ? totalPrice * (pricing.bonusPercentage / 100) : 0;
+        const finalPrice = totalPrice + bonusAmount;
+        
+        return total + finalPrice;
+      }
+      return total;
+    }, 0);
 
   const handleAcceptAssignment = (assignment: Assignment) => {
     updateAssignment(assignment.id, {
@@ -189,6 +240,21 @@ export const TechnicianDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Carte des gains totaux */}
+        {totalEarnings > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 mt-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Euro className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">{totalEarnings.toFixed(2)}€</div>
+                <div className="text-sm text-gray-500">Gains totaux (contrats acceptés)</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filtres et tri pour les contrats assignés */}
@@ -306,6 +372,31 @@ export const TechnicianDashboard: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Affichage de la tarification */}
+                    {eventPricing[event.id] && (
+                      <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Euro className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">Rémunération</span>
+                        </div>
+                        <MissionPricingDisplay
+                          pricing={eventPricing[event.id]}
+                          event={event}
+                          technicianLevel={user?.skills?.[0]?.level || 'intermediate'}
+                          showDetails={false}
+                        />
+                      </div>
+                    )}
+
+                    {loadingPricing[event.id] && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          <span className="text-sm text-gray-600">Chargement de la tarification...</span>
+                        </div>
+                      </div>
+                    )}
+
                     {assignment.declineReason && (
                       <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
                         <p className="text-sm text-red-800">
@@ -366,7 +457,7 @@ export const TechnicianDashboard: React.FC = () => {
                 Annuler
               </button>
               <button
-                onClick={() => handleDeclineAssignment(selectedAssignment, declineReason)}
+                onClick={() => selectedAssignment && handleDeclineAssignment(selectedAssignment, declineReason)}
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Confirmer le refus
